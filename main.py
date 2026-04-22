@@ -1,78 +1,105 @@
 import pygame
 import sys
 
-# Inicializar motor y submódulo de joystick
+# --- CONFIGURACIÓN DE IHC ---
 pygame.init()
 pygame.joystick.init()
 
-# Configuraciones de pantalla
-ANCHO = 800
-ALTO = 600
+ANCHO, ALTO = 800, 600
 pantalla = pygame.display.set_mode((ANCHO, ALTO))
-pygame.display.set_caption("Laboratorio IHC - Lunar Lander")
+pygame.display.set_caption("IHC Lab: Lunar Lander con Reinicio")
 reloj = pygame.time.Clock()
 
-# Detección del hardware
-joysticks = [pygame.joystick.Joystick(i) for i in range(pygame.joystick.get_count())]
-if not joysticks:
-    print("Por favor, conecta el Acteck AGJ-4000.")
+# Detección de Joystick
+if pygame.joystick.get_count() == 0:
+    print("Error: Conecta el Acteck AGJ-4000.")
     sys.exit()
 
-mi_joystick = joysticks[0]
+mi_joystick = pygame.joystick.Joystick(0)
 mi_joystick.init()
-print(f"Hardware detectado: {mi_joystick.get_name()}")
 
-# --- VARIABLES DE LA NAVE ---
-nave_x = ANCHO // 2
-nave_y = ALTO // 2
-velocidad = 7
-tamaño_nave = 40
+# --- VARIABLES GLOBALES ---
+BLANCO = (255, 255, 255)
+GRIS = (30, 30, 30)
+VERDE = (0, 255, 0)
+ROJO = (255, 0, 0)
+plataforma = pygame.Rect(ANCHO // 2 - 50, ALTO - 50, 100, 20)
 
-# IHC: Zona muerta (Deadzone)
-# Los joysticks físicos nunca regresan exactamente a 0.0, siempre tienen un micro-desvío.
-# Ignoramos cualquier valor menor a 0.15 para que la nave no se mueva sola.
-zona_muerta = 0.15 
+def reiniciar_juego():
+    """Restablece el estado inicial del sistema (IHC: Recuperabilidad)"""
+    return {
+        "pos": [ANCHO // 2, 50],
+        "vel": [0, 0],
+        "terminado": False,
+        "mensaje": "",
+        "color_msg": BLANCO
+    }
 
-# Bucle principal del juego
+# Inicializar primer estado
+estado = reiniciar_juego()
+
 corriendo = True
 while corriendo:
     for evento in pygame.event.get():
         if evento.type == pygame.QUIT:
             corriendo = False
-            
-    # 1. Leer entradas físicas
+
+    # 1. ENTRADAS (Mapeo de hardware)
     eje_x = mi_joystick.get_axis(0)
-    eje_y = mi_joystick.get_axis(1)
-    gatillo = mi_joystick.get_button(0)
-
-    # 2. Lógica de movimiento (Aplicando zona muerta)
-    if abs(eje_x) > zona_muerta:
-        nave_x += eje_x * velocidad
-        
-    if abs(eje_y) > zona_muerta:
-        nave_y += eje_y * velocidad
-
-    # 3. Límites de la pantalla (Para que no se escape)
-    if nave_x < 0: nave_x = 0
-    if nave_x > ANCHO - tamaño_nave: nave_x = ANCHO - tamaño_nave
-    if nave_y < 0: nave_y = 0
-    if nave_y > ALTO - tamaño_nave: nave_y = ALTO - tamaño_nave
-
-    # 4. Feedback Visual (IHC)
-    # Cambiamos el color de la nave si presiona el gatillo (simulando propulsores)
-    if gatillo:
-        color_nave = (255, 100, 100) # Rojo (Acelerando)
-    else:
-        color_nave = (100, 200, 255) # Azul (Modo reposo)
-
-    # 5. Renderizado
-    pantalla.fill((30, 30, 30)) # Limpiar rastro anterior
-    pygame.draw.rect(pantalla, color_nave, (nave_x, nave_y, tamaño_nave, tamaño_nave))
+    gatillo = mi_joystick.get_button(0)      # Propulsor
+    boton_reset = mi_joystick.get_button(1)  # Botón de pulgar para reiniciar
     
-    # Dibujar las coordenadas en la terminal para que veas los valores en crudo
-    print(f"X: {eje_x:.2f} | Y: {eje_y:.2f} | Gatillo: {gatillo}", end="\r")
+    # Lógica de Reinicio (IHC: El usuario tiene el control)
+    if boton_reset:
+        estado = reiniciar_juego()
+
+    # 2. FÍSICA (Solo si no ha terminado)
+    if not estado["terminado"]:
+        estado["vel"][1] += 0.1  # Gravedad
+        
+        if gatillo:
+            estado["vel"][1] -= 0.4 # Impulso
+            
+        if abs(eje_x) > 0.15:
+            estado["vel"][0] += eje_x * 0.2
+            
+        estado["vel"][0] *= 0.99 # Fricción
+        estado["pos"][0] += estado["vel"][0]
+        estado["pos"][1] += estado["vel"][1]
+
+        # 3. DETECCIÓN DE COLISIONES
+        nave_rect = pygame.Rect(estado["pos"][0], estado["pos"][1], 30, 30)
+        
+        if nave_rect.colliderect(plataforma):
+            estado["terminado"] = True
+            if estado["vel"][1] < 3.0:
+                estado["mensaje"], estado["color_msg"] = "¡ATERRIZAJE EXITOSO!", VERDE
+            else:
+                estado["mensaje"], estado["color_msg"] = "¡CRASH! MUY RÁPIDO", ROJO
+            estado["vel"] = [0, 0]
+
+        if estado["pos"][1] > ALTO or estado["pos"][0] < 0 or estado["pos"][0] > ANCHO:
+            estado["terminado"] = True
+            estado["mensaje"], estado["color_msg"] = "FUERA DE RANGO", ROJO
+
+    # 4. RENDERIZADO
+    pantalla.fill(GRIS)
+    pygame.draw.rect(pantalla, VERDE, plataforma)
+    
+    color_nave = (255, 165, 0) if gatillo else BLANCO
+    pygame.draw.rect(pantalla, color_nave, (estado["pos"][0], estado["pos"][1], 30, 30))
+    
+    # UI de Instrucciones
+    fuente = pygame.font.SysFont("Arial", 18)
+    instrucciones = fuente.render("Presiona el botón del pulgar para reiniciar", True, (150, 150, 150))
+    pantalla.blit(instrucciones, (10, ALTO - 30))
+    
+    if estado["mensaje"]:
+        fuente_msg = pygame.font.SysFont("Arial", 48, bold=True)
+        txt_msg = fuente_msg.render(estado["mensaje"], True, estado["color_msg"])
+        pantalla.blit(txt_msg, (ANCHO // 2 - 200, ALTO // 2))
 
     pygame.display.flip()
-    reloj.tick(60) # Mantener a 60 FPS
+    reloj.tick(60)
 
 pygame.quit()
