@@ -1,0 +1,10 @@
+[2026-04-22 20:37:33] Res: EXITOSO | Vel: 1.28 | Fuel: 52.0%
+[2026-04-22 20:38:06] Res: EXITOSO | Vel: 0.89 | Fuel: 50.5%
+[2026-04-22 20:38:18] Res: CHOQUE | Vel: 4.04 | Fuel: 100.0%
+[2026-04-22 20:38:30] Res: CRASH | Vel: 15.03 | Fuel: 25.5%
+[2026-04-22 20:38:40] Res: CRASH | Vel: 9.63 | Fuel: 79.5%
+[2026-04-22 20:38:47] Res: CHOQUE | Vel: 3.12 | Fuel: 54.0%
+[2026-04-22 20:39:16] Res: ATERRIZAJE PERFECTO | Vel: 1.39 | Fuel: 93.5%
+[2026-04-22 20:39:28] Res: CÁPSULA DESTRUIDA | Vel: 3.44 | Fuel: 100.0%
+[2026-04-22 20:39:34] Res: CÁPSULA DESTRUIDA | Vel: 2.85 | Fuel: 40.5%
+[2026-04-22 20:39:37] Res: CÁPSULA DESTRUIDA | Vel: 8.00 | Fuel: 4.0%
