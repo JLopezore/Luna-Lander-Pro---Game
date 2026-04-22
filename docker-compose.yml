@@ -1,0 +1,14 @@
+services:
+  lunar-lander:
+    build:
+      context: .
+      network: host
+    container_name: ihc_joystick_game
+    privileged: true
+    environment:
+      - DISPLAY=${DISPLAY}
+      - SDL_AUDIODRIVER=dummy
+    volumes:
+      - /tmp/.X11-unix:/tmp/.X11-unix
+      - .:/app
+      - /dev/input:/dev/input
