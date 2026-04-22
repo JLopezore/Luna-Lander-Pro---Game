@@ -3,21 +3,56 @@ import sys
 import random
 import time
 import os
+import wave
+import math
+import struct
+
+# --- IHC: GENERADOR DE AUDIO SINTÉTICO ---
+# Creamos los sonidos por código para no depender de archivos externos
+def crear_archivos_de_sonido():
+    if not os.path.exists("laser.wav"):
+        with wave.open("laser.wav", "w") as f:
+            f.setparams((1, 2, 44100, 0, 'NONE', 'not compressed'))
+            for i in range(int(44100 * 0.15)): # Duración 0.15s
+                freq = 1200 - (i / (44100 * 0.15)) * 800 # Frecuencia descendente (Pew!)
+                val = int(8000 * math.sin(2 * math.pi * freq * (i / 44100.0)))
+                f.writeframes(struct.pack('<h', val))
+                
+    if not os.path.exists("choque.wav"):
+        with wave.open("choque.wav", "w") as f:
+            f.setparams((1, 2, 44100, 0, 'NONE', 'not compressed'))
+            for i in range(int(44100 * 0.6)): # Duración 0.6s
+                volumen = 1.0 - (i / (44100 * 0.6)) # Fade out
+                val = int(15000 * volumen * random.uniform(-1.0, 1.0)) # Ruido blanco (Explosión)
+                f.writeframes(struct.pack('<h', val))
+
+crear_archivos_de_sonido()
 
 # --- CONFIGURACIÓN ---
 pygame.init()
 pygame.joystick.init()
 
+# Inicializar Audio con manejo de errores por si Docker bloquea la tarjeta de sonido
+try:
+    pygame.mixer.init()
+    snd_laser = pygame.mixer.Sound("laser.wav")
+    snd_choque = pygame.mixer.Sound("choque.wav")
+    snd_laser.set_volume(0.3)
+    snd_choque.set_volume(0.7)
+    audio_on = True
+except Exception as e:
+    print(f"IHC Audio Warning: {e}")
+    audio_on = False
+
 ANCHO, ALTO = 800, 600
 pantalla = pygame.display.set_mode((ANCHO, ALTO))
-# Creamos una superficie virtual para poder sacudir todo el juego a la vez
 pantalla_virtual = pygame.Surface((ANCHO, ALTO))
-pygame.display.set_caption("IHC Lab: Supervivencia y Screen Shake")
+pygame.display.set_caption("IHC Lab: Experiencia Audiovisual")
 reloj = pygame.time.Clock()
 
 # Hardware
 if pygame.joystick.get_count() == 0:
-    print("Conecta el joystick Acteck.")
+    print("Error: Conecta el Acteck AGJ-4000.")
     sys.exit()
 mi_joystick = pygame.joystick.Joystick(0)
 mi_joystick.init()
@@ -49,8 +84,6 @@ def guardar_record(nuevo_record):
     with open("record_ihc.txt", "w") as f: f.write(str(nuevo_record))
 
 record_historico = cargar_record()
-
-# --- ESTADO DEL JUEGO ---
 estrellas = [(random.randint(0, ANCHO), random.randint(0, ALTO), random.uniform(1, 3)) for _ in range(100)]
 
 def reiniciar_carrera():
@@ -66,8 +99,8 @@ def reiniciar_carrera():
         'chocado': False,
         'log_guardado': False,
         'nuevo_record': False,
-        'temblor': 0,        # IHC: Duración del temblor de pantalla
-        'flash_rojo': False  # IHC: Destello visual de impacto
+        'temblor': 0,
+        'flash_rojo': False
     }
 
 def crear_asteroide(velocidad_base):
@@ -101,11 +134,12 @@ while corriendo:
         estado['pos'][0] = max(20, min(ANCHO - 20, estado['pos'][0]))
         estado['pos'][1] = max(50, min(ALTO - 50, estado['pos'][1]))
 
+        # Disparos y Efecto Auditivo
         if gatillo_disparo and estado['cooldown_arma'] == 0:
             estado['disparos'].append({'x': estado['pos'][0], 'y': estado['pos'][1] - 25, 'vy': -15})
             estado['cooldown_arma'] = 12
-            # IHC: Pequeño temblor al disparar (Retroceso)
             estado['temblor'] = 3 
+            if audio_on: snd_laser.play() # Reproducir sonido Pew!
 
         if estado['cooldown_arma'] > 0: estado['cooldown_arma'] -= 1
 
@@ -118,8 +152,7 @@ while corriendo:
         for i in range(len(estrellas)):
             efecto_velocidad = estado['velocidad_base'] - (eje_y * 3) 
             estrellas[i] = (estrellas[i][0], estrellas[i][1] + estrellas[i][2] + (efecto_velocidad/2), estrellas[i][2])
-            if estrellas[i][1] > ALTO:
-                estrellas[i] = (random.randint(0, ANCHO), 0, estrellas[i][2])
+            if estrellas[i][1] > ALTO: estrellas[i] = (random.randint(0, ANCHO), 0, estrellas[i][2])
 
         for disparo in estado['disparos'][:]:
             disparo['y'] += disparo['vy']
@@ -137,11 +170,12 @@ while corriendo:
             ast['x'] += ast['vx']
             ast['y'] += ast['vy'] - (eje_y * 2) 
 
-            # DETECCIÓN DE IMPACTO
+            # IMPACTO Y SONIDO DE EXPLOSIÓN
             if ((estado['pos'][0] - ast['x'])**2 + (estado['pos'][1] - ast['y'])**2)**0.5 < ast['radio'] + 15: 
                 estado['chocado'] = True
-                estado['temblor'] = 30       # 30 frames de temblor violento
-                estado['flash_rojo'] = True  # Pantallazo rojo instantáneo
+                estado['temblor'] = 30       
+                estado['flash_rojo'] = True  
+                if audio_on: snd_choque.play() # Reproducir explosión
 
             if ast['y'] > ALTO + 50:
                 estado['asteroides'].remove(ast)
@@ -155,12 +189,11 @@ while corriendo:
             estado['nuevo_record'] = True
         estado['log_guardado'] = True
 
-    # --- RENDERIZADO VISUAL EN SUPERFICIE VIRTUAL ---
+    # --- RENDERIZADO VISUAL ---
     pantalla_virtual.fill((150, 0, 0) if estado['flash_rojo'] else FONDO)
-    estado['flash_rojo'] = False # Solo dura un frame
+    estado['flash_rojo'] = False
 
-    for e in estrellas:
-        pygame.draw.circle(pantalla_virtual, BLANCO, (int(e[0]), int(e[1])), int(e[2]))
+    for e in estrellas: pygame.draw.circle(pantalla_virtual, BLANCO, (int(e[0]), int(e[1])), int(e[2]))
 
     for disparo in estado['disparos']:
         pygame.draw.rect(pantalla_virtual, LASER, (int(disparo['x'] - 2), int(disparo['y']), 4, 15))
@@ -180,7 +213,6 @@ while corriendo:
         puntos_fuego = [(nx - 10, ny + 10), (nx, ny + 10 + largo_fuego + random.randint(0, 5)), (nx + 10, ny + 10)]
         pygame.draw.polygon(pantalla_virtual, NAVE_PROPULSOR, puntos_fuego)
 
-    # UI y Textos
     fuente = pygame.font.SysFont("Courier New", 20, bold=True)
     pantalla_virtual.blit(fuente.render(f"DIST: {estado['distancia']:.0f}m", True, BLANCO), (20, 20))
     pantalla_virtual.blit(fuente.render(f"CAZA: {estado['destruidos']}", True, (255, 100, 100)), (ANCHO - 150, 20))
@@ -192,17 +224,14 @@ while corriendo:
         if estado['nuevo_record']:
             pantalla_virtual.blit(fuente_grande.render("¡NUEVO RÉCORD!", True, DORADO), (ANCHO//2 - 180, ALTO//2 - 10))
 
-    # --- APLICAR EL EFECTO SCREEN SHAKE ---
     offset_x, offset_y = 0, 0
     if estado['temblor'] > 0:
-        # Generar un desplazamiento aleatorio que se reduce con el tiempo
         intensidad = estado['temblor'] // 2
         offset_x = random.randint(-intensidad, intensidad)
         offset_y = random.randint(-intensidad, intensidad)
         estado['temblor'] -= 1
 
-    # Dibujar la superficie virtual en la pantalla real con el offset (temblor)
-    pantalla.fill((0, 0, 0)) # Fondo negro para los bordes cuando tiembla
+    pantalla.fill((0, 0, 0)) 
     pantalla.blit(pantalla_virtual, (offset_x, offset_y))
 
     pygame.display.flip()

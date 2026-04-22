@@ -5,6 +5,9 @@ services:
       network: host
     container_name: ihc_joystick_game
     privileged: true
+    devices:
+      - /dev/input:/dev/input    # Para el Joystick
+      - /dev/snd:/dev/snd       # Para el sonido
     environment:
       - DISPLAY=${DISPLAY}
       - SDL_AUDIODRIVER=dummy
@@ -12,3 +15,4 @@ services:
       - /tmp/.X11-unix:/tmp/.X11-unix
       - .:/app
       - /dev/input:/dev/input
+      - /dev/snd:/dev/snd
