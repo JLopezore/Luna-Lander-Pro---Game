@@ -41,3 +41,9 @@
 [2026-04-22 21:24:30] Distancia: 44m | Esquivados: 0 | Destruidos: 0
 [2026-04-22 21:24:59] Distancia: 141m | Esquivados: 2 | Destruidos: 0
 [2026-04-22 21:26:11] Distancia: 58m | Esquivados: 0 | Destruidos: 0
+[2026-04-22 21:27:38] Distancia: 39m | Esquivados: 0 | Destruidos: 0
+[2026-04-22 21:27:41] Distancia: 26m | Esquivados: 0 | Destruidos: 0
+[2026-04-22 21:27:45] Distancia: 110m | Esquivados: 3 | Destruidos: 0
+[2026-04-22 21:27:49] Distancia: 68m | Esquivados: 1 | Destruidos: 0
+[2026-04-22 21:27:53] Distancia: 90m | Esquivados: 1 | Destruidos: 0
+[2026-04-22 21:27:57] Distancia: 112m | Esquivados: 1 | Destruidos: 0

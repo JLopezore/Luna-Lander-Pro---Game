@@ -10,7 +10,9 @@ pygame.joystick.init()
 
 ANCHO, ALTO = 800, 600
 pantalla = pygame.display.set_mode((ANCHO, ALTO))
-pygame.display.set_caption("IHC Lab: Supervivencia Háptica")
+# Creamos una superficie virtual para poder sacudir todo el juego a la vez
+pantalla_virtual = pygame.Surface((ANCHO, ALTO))
+pygame.display.set_caption("IHC Lab: Supervivencia y Screen Shake")
 reloj = pygame.time.Clock()
 
 # Hardware
@@ -39,15 +41,12 @@ def registrar_carrera(distancia, esquivados, destruidos):
 def cargar_record():
     if os.path.exists("record_ihc.txt"):
         try:
-            with open("record_ihc.txt", "r") as f:
-                return float(f.read().strip())
-        except:
-            return 0.0
+            with open("record_ihc.txt", "r") as f: return float(f.read().strip())
+        except: return 0.0
     return 0.0
 
 def guardar_record(nuevo_record):
-    with open("record_ihc.txt", "w") as f:
-        f.write(str(nuevo_record))
+    with open("record_ihc.txt", "w") as f: f.write(str(nuevo_record))
 
 record_historico = cargar_record()
 
@@ -66,7 +65,9 @@ def reiniciar_carrera():
         'destruidos': 0,
         'chocado': False,
         'log_guardado': False,
-        'nuevo_record': False
+        'nuevo_record': False,
+        'temblor': 0,        # IHC: Duración del temblor de pantalla
+        'flash_rojo': False  # IHC: Destello visual de impacto
     }
 
 def crear_asteroide(velocidad_base):
@@ -86,61 +87,45 @@ while corriendo:
     for evento in pygame.event.get():
         if evento.type == pygame.QUIT: corriendo = False
 
-    # 1. ENTRADAS (Joystick)
     eje_x = mi_joystick.get_axis(0)
     eje_y = mi_joystick.get_axis(1)
     gatillo_disparo = mi_joystick.get_button(0)
-    boton_reinicio = mi_joystick.get_button(1)
     
-    if boton_reinicio: 
-        # Detener cualquier vibración residual si reinicia rápido
-        try: mi_joystick.stop_rumble() 
-        except: pass
+    if mi_joystick.get_button(1): 
         estado = reiniciar_carrera()
 
-    # 2. LÓGICA Y FÍSICA
     if not estado['chocado']:
-        # Movimiento
         if abs(eje_x) > 0.15: estado['pos'][0] += eje_x * 8
         if abs(eje_y) > 0.15: estado['pos'][1] += eje_y * 6
 
         estado['pos'][0] = max(20, min(ANCHO - 20, estado['pos'][0]))
         estado['pos'][1] = max(50, min(ALTO - 50, estado['pos'][1]))
 
-        # Disparos y Micro-Vibración
         if gatillo_disparo and estado['cooldown_arma'] == 0:
             estado['disparos'].append({'x': estado['pos'][0], 'y': estado['pos'][1] - 25, 'vy': -15})
             estado['cooldown_arma'] = 12
-            
-            # IHC: Micro-retroceso al disparar (Baja frec, Alta frec, Duración ms)
-            try: mi_joystick.rumble(0.0, 0.3, 50) 
-            except: pass
+            # IHC: Pequeño temblor al disparar (Retroceso)
+            estado['temblor'] = 3 
 
-        if estado['cooldown_arma'] > 0:
-            estado['cooldown_arma'] -= 1
+        if estado['cooldown_arma'] > 0: estado['cooldown_arma'] -= 1
 
-        # Progresión
         estado['distancia'] += estado['velocidad_base'] / 10
         estado['velocidad_base'] = 5.0 + (estado['distancia'] / 100)
 
-        # Generar asteroides
         if random.random() < (0.02 + (estado['velocidad_base'] / 500)):
             estado['asteroides'].append(crear_asteroide(estado['velocidad_base']))
 
-        # Estrellas (Fondo)
         for i in range(len(estrellas)):
             efecto_velocidad = estado['velocidad_base'] - (eje_y * 3) 
             estrellas[i] = (estrellas[i][0], estrellas[i][1] + estrellas[i][2] + (efecto_velocidad/2), estrellas[i][2])
             if estrellas[i][1] > ALTO:
                 estrellas[i] = (random.randint(0, ANCHO), 0, estrellas[i][2])
 
-        # Láseres y destrucción
         for disparo in estado['disparos'][:]:
             disparo['y'] += disparo['vy']
             if disparo['y'] < -10:
                 estado['disparos'].remove(disparo)
                 continue
-            
             for ast in estado['asteroides'][:]:
                 if ((disparo['x'] - ast['x'])**2 + (disparo['y'] - ast['y'])**2)**0.5 < ast['radio']:
                     estado['asteroides'].remove(ast)
@@ -148,88 +133,77 @@ while corriendo:
                     estado['destruidos'] += 1
                     break
 
-        # Asteroides y Colisión (Game Over)
         for ast in estado['asteroides'][:]:
             ast['x'] += ast['vx']
             ast['y'] += ast['vy'] - (eje_y * 2) 
 
-            # Detección de impacto fatal
+            # DETECCIÓN DE IMPACTO
             if ((estado['pos'][0] - ast['x'])**2 + (estado['pos'][1] - ast['y'])**2)**0.5 < ast['radio'] + 15: 
-                if not estado['chocado']: # Solo ejecutar esto una vez al chocar
-                    estado['chocado'] = True
-                    # IHC: Feedback de impacto masivo (Motores al 100% por 800ms)
-                    try: mi_joystick.rumble(1.0, 1.0, 800)
-                    except: pass
+                estado['chocado'] = True
+                estado['temblor'] = 30       # 30 frames de temblor violento
+                estado['flash_rojo'] = True  # Pantallazo rojo instantáneo
 
             if ast['y'] > ALTO + 50:
                 estado['asteroides'].remove(ast)
                 estado['esquivados'] += 1
 
-    # Procesar Récord al perder
     if estado['chocado'] and not estado['log_guardado']:
         registrar_carrera(estado['distancia'], estado['esquivados'], estado['destruidos'])
-        
         if estado['distancia'] > record_historico:
             record_historico = estado['distancia']
             guardar_record(record_historico)
             estado['nuevo_record'] = True
-            
         estado['log_guardado'] = True
 
-    # 3. RENDERIZADO VISUAL
-    pantalla.fill(FONDO)
-    
+    # --- RENDERIZADO VISUAL EN SUPERFICIE VIRTUAL ---
+    pantalla_virtual.fill((150, 0, 0) if estado['flash_rojo'] else FONDO)
+    estado['flash_rojo'] = False # Solo dura un frame
+
     for e in estrellas:
-        pygame.draw.circle(pantalla, BLANCO, (int(e[0]), int(e[1])), int(e[2]))
+        pygame.draw.circle(pantalla_virtual, BLANCO, (int(e[0]), int(e[1])), int(e[2]))
 
     for disparo in estado['disparos']:
-        pygame.draw.rect(pantalla, LASER, (int(disparo['x'] - 2), int(disparo['y']), 4, 15))
-        pygame.draw.rect(pantalla, (255, 150, 150), (int(disparo['x'] - 1), int(disparo['y'] + 2), 2, 11))
+        pygame.draw.rect(pantalla_virtual, LASER, (int(disparo['x'] - 2), int(disparo['y']), 4, 15))
+        pygame.draw.rect(pantalla_virtual, (255, 150, 150), (int(disparo['x'] - 1), int(disparo['y'] + 2), 2, 11))
 
     for ast in estado['asteroides']:
-        pygame.draw.circle(pantalla, ASTEROIDE, (int(ast['x']), int(ast['y'])), ast['radio'])
-        pygame.draw.circle(pantalla, ASTEROIDE_BORDE, (int(ast['x']), int(ast['y'])), ast['radio'], 3)
-        pygame.draw.circle(pantalla, ASTEROIDE_BORDE, (int(ast['x'] - ast['radio']/3), int(ast['y'] - ast['radio']/3)), int(ast['radio']/4))
+        pygame.draw.circle(pantalla_virtual, ASTEROIDE, (int(ast['x']), int(ast['y'])), ast['radio'])
+        pygame.draw.circle(pantalla_virtual, ASTEROIDE_BORDE, (int(ast['x']), int(ast['y'])), ast['radio'], 3)
+        pygame.draw.circle(pantalla_virtual, ASTEROIDE_BORDE, (int(ast['x'] - ast['radio']/3), int(ast['y'] - ast['radio']/3)), int(ast['radio']/4))
 
     nx, ny = estado['pos'][0], estado['pos'][1]
     puntos_nave = [(nx, ny - 25), (nx - 20, ny + 15), (nx, ny + 5), (nx + 20, ny + 15)]
-    pygame.draw.polygon(pantalla, NAVE, puntos_nave)
-    
-    largo_fuego = 15
-    if eje_y < -0.15: largo_fuego = 35 
-    elif eje_y > 0.15: largo_fuego = 5 
+    pygame.draw.polygon(pantalla_virtual, NAVE, puntos_nave)
     
     if not estado['chocado']:
+        largo_fuego = 35 if eje_y < -0.15 else (5 if eje_y > 0.15 else 15)
         puntos_fuego = [(nx - 10, ny + 10), (nx, ny + 10 + largo_fuego + random.randint(0, 5)), (nx + 10, ny + 10)]
-        pygame.draw.polygon(pantalla, NAVE_PROPULSOR, puntos_fuego)
+        pygame.draw.polygon(pantalla_virtual, NAVE_PROPULSOR, puntos_fuego)
 
-    # 4. INTERFAZ (HUD) Y TEXTOS
+    # UI y Textos
     fuente = pygame.font.SysFont("Courier New", 20, bold=True)
-    
-    txt_dist = fuente.render(f"DIST: {estado['distancia']:.0f}m", True, BLANCO)
-    txt_dest = fuente.render(f"CAZA: {estado['destruidos']}", True, (255, 100, 100))
-    txt_record = fuente.render(f"RÉCORD: {record_historico:.0f}m", True, DORADO)
-    
-    pantalla.blit(txt_dist, (20, 20))
-    pantalla.blit(txt_dest, (ANCHO - 150, 20))
-    pantalla.blit(txt_record, (ANCHO // 2 - 80, 20))
+    pantalla_virtual.blit(fuente.render(f"DIST: {estado['distancia']:.0f}m", True, BLANCO), (20, 20))
+    pantalla_virtual.blit(fuente.render(f"CAZA: {estado['destruidos']}", True, (255, 100, 100)), (ANCHO - 150, 20))
+    pantalla_virtual.blit(fuente.render(f"RÉCORD: {record_historico:.0f}m", True, DORADO), (ANCHO // 2 - 80, 20))
 
     if estado['chocado']:
         fuente_grande = pygame.font.SysFont("Courier New", 50, bold=True)
-        txt_fin = fuente_grande.render("¡NAVE DESTRUIDA!", True, (255, 50, 50))
-        txt_res = fuente.render(f"Distancia: {estado['distancia']:.0f}m | Destruidos: {estado['destruidos']}", True, BLANCO)
-        txt_inst = fuente.render("Presiona Botón 1 para reintentar", True, (150, 150, 150))
-        
-        pantalla.blit(txt_fin, txt_fin.get_rect(center=(ANCHO//2, ALTO//2 - 60)))
-        
+        pantalla_virtual.blit(fuente_grande.render("¡NAVE DESTRUIDA!", True, (255, 50, 50)), (ANCHO//2 - 210, ALTO//2 - 60))
         if estado['nuevo_record']:
-            txt_nuevo_record = fuente_grande.render("¡NUEVO RÉCORD!", True, DORADO)
-            pantalla.blit(txt_nuevo_record, txt_nuevo_record.get_rect(center=(ANCHO//2, ALTO//2 - 10)))
-            pantalla.blit(txt_res, txt_res.get_rect(center=(ANCHO//2, ALTO//2 + 40)))
-            pantalla.blit(txt_inst, txt_inst.get_rect(center=(ANCHO//2, ALTO//2 + 80)))
-        else:
-            pantalla.blit(txt_res, txt_res.get_rect(center=(ANCHO//2, ALTO//2 + 10)))
-            pantalla.blit(txt_inst, txt_inst.get_rect(center=(ANCHO//2, ALTO//2 + 50)))
+            pantalla_virtual.blit(fuente_grande.render("¡NUEVO RÉCORD!", True, DORADO), (ANCHO//2 - 180, ALTO//2 - 10))
+
+    # --- APLICAR EL EFECTO SCREEN SHAKE ---
+    offset_x, offset_y = 0, 0
+    if estado['temblor'] > 0:
+        # Generar un desplazamiento aleatorio que se reduce con el tiempo
+        intensidad = estado['temblor'] // 2
+        offset_x = random.randint(-intensidad, intensidad)
+        offset_y = random.randint(-intensidad, intensidad)
+        estado['temblor'] -= 1
+
+    # Dibujar la superficie virtual en la pantalla real con el offset (temblor)
+    pantalla.fill((0, 0, 0)) # Fondo negro para los bordes cuando tiembla
+    pantalla.blit(pantalla_virtual, (offset_x, offset_y))
 
     pygame.display.flip()
     reloj.tick(60)
