@@ -10,7 +10,8 @@ services:
       - /dev/snd:/dev/snd       # Para el sonido
     environment:
       - DISPLAY=${DISPLAY}
-      - SDL_AUDIODRIVER=dummy
+      - SDL_AUDIODRIVER=alsa
+      - XDG_RUNTIME_DIR=/tmp
     volumes:
       - /tmp/.X11-unix:/tmp/.X11-unix
       - .:/app

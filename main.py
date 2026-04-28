@@ -8,31 +8,31 @@ import math
 import struct
 
 # --- IHC: GENERADOR DE AUDIO SINTÉTICO ---
-# Creamos los sonidos por código para no depender de archivos externos
 def crear_archivos_de_sonido():
     if not os.path.exists("laser.wav"):
         with wave.open("laser.wav", "w") as f:
             f.setparams((1, 2, 44100, 0, 'NONE', 'not compressed'))
-            for i in range(int(44100 * 0.15)): # Duración 0.15s
-                freq = 1200 - (i / (44100 * 0.15)) * 800 # Frecuencia descendente (Pew!)
+            for i in range(int(44100 * 0.15)):
+                freq = 1200 - (i / (44100 * 0.15)) * 800
                 val = int(8000 * math.sin(2 * math.pi * freq * (i / 44100.0)))
                 f.writeframes(struct.pack('<h', val))
                 
     if not os.path.exists("choque.wav"):
         with wave.open("choque.wav", "w") as f:
             f.setparams((1, 2, 44100, 0, 'NONE', 'not compressed'))
-            for i in range(int(44100 * 0.6)): # Duración 0.6s
-                volumen = 1.0 - (i / (44100 * 0.6)) # Fade out
-                val = int(15000 * volumen * random.uniform(-1.0, 1.0)) # Ruido blanco (Explosión)
+            for i in range(int(44100 * 0.6)):
+                volumen = 1.0 - (i / (44100 * 0.6))
+                val = int(15000 * volumen * random.uniform(-1.0, 1.0))
                 f.writeframes(struct.pack('<h', val))
 
 crear_archivos_de_sonido()
 
-# --- CONFIGURACIÓN ---
+# --- OPTIMIZACIÓN DE HARDWARE (Elimina el Input Lag) ---
+pygame.mixer.pre_init(44100, -16, 2, 512)
+
 pygame.init()
 pygame.joystick.init()
 
-# Inicializar Audio con manejo de errores por si Docker bloquea la tarjeta de sonido
 try:
     pygame.mixer.init()
     snd_laser = pygame.mixer.Sound("laser.wav")
@@ -47,12 +47,11 @@ except Exception as e:
 ANCHO, ALTO = 800, 600
 pantalla = pygame.display.set_mode((ANCHO, ALTO))
 pantalla_virtual = pygame.Surface((ANCHO, ALTO))
-pygame.display.set_caption("IHC Lab: Experiencia Audiovisual")
+pygame.display.set_caption("IHC Lab: Versión Final (Filtro Asimétrico)")
 reloj = pygame.time.Clock()
 
-# Hardware
 if pygame.joystick.get_count() == 0:
-    print("Error: Conecta el Acteck AGJ-4000.")
+    print("Error: Conecta el joystick Acteck.")
     sys.exit()
 mi_joystick = pygame.joystick.Joystick(0)
 mi_joystick.init()
@@ -120,26 +119,47 @@ while corriendo:
     for evento in pygame.event.get():
         if evento.type == pygame.QUIT: corriendo = False
 
-    eje_x = mi_joystick.get_axis(0)
-    eje_y = mi_joystick.get_axis(1)
+    # 1. LECTURA CRUDA DEL HARDWARE
+    eje_x_crudo = mi_joystick.get_axis(0)
+    eje_y_crudo = mi_joystick.get_axis(1)
     gatillo_disparo = mi_joystick.get_button(0)
     
     if mi_joystick.get_button(1): 
         estado = reiniciar_carrera()
 
     if not estado['chocado']:
-        if abs(eje_x) > 0.15: estado['pos'][0] += eje_x * 8
-        if abs(eje_y) > 0.15: estado['pos'][1] += eje_y * 6
+        # 2. FILTRO ASIMÉTRICO (Compensación de Hardware)
+        # 2. FILTRO ASIMÉTRICO EXTREMO (Calibrado para Max 6080)
+        eje_x = 0.0
+        eje_y = 0.0
+
+        # Eje X (Izquierda / Derecha)
+        if eje_x_crudo < -0.15:
+            # Izquierda funciona normal (llega hasta -1.0)
+            eje_x = (eje_x_crudo + 0.15) / 0.85 
+            
+        elif eje_x_crudo > 0.05: # Bajamos la zona muerta derecha porque tienes muy poco recorrido físico
+            # Derecha está dañada: El máximo físico detectado es ~0.185 (6080/32767)
+            # Rango útil: 0.185 - 0.05 = 0.135
+            eje_x = min(1.0, (eje_x_crudo - 0.05) / 0.135) 
+
+        # Eje Y (Arriba / Abajo)
+        if abs(eje_y_crudo) > 0.15:
+            eje_y = eje_y_crudo  
+
+        # 3. MOVIMIENTO
+        estado['pos'][0] += eje_x * 8
+        estado['pos'][1] += eje_y * 6
 
         estado['pos'][0] = max(20, min(ANCHO - 20, estado['pos'][0]))
         estado['pos'][1] = max(50, min(ALTO - 50, estado['pos'][1]))
 
-        # Disparos y Efecto Auditivo
+        # Disparos y Efectos
         if gatillo_disparo and estado['cooldown_arma'] == 0:
             estado['disparos'].append({'x': estado['pos'][0], 'y': estado['pos'][1] - 25, 'vy': -15})
             estado['cooldown_arma'] = 12
             estado['temblor'] = 3 
-            if audio_on: snd_laser.play() # Reproducir sonido Pew!
+            if audio_on: snd_laser.play() 
 
         if estado['cooldown_arma'] > 0: estado['cooldown_arma'] -= 1
 
@@ -170,12 +190,11 @@ while corriendo:
             ast['x'] += ast['vx']
             ast['y'] += ast['vy'] - (eje_y * 2) 
 
-            # IMPACTO Y SONIDO DE EXPLOSIÓN
             if ((estado['pos'][0] - ast['x'])**2 + (estado['pos'][1] - ast['y'])**2)**0.5 < ast['radio'] + 15: 
                 estado['chocado'] = True
                 estado['temblor'] = 30       
                 estado['flash_rojo'] = True  
-                if audio_on: snd_choque.play() # Reproducir explosión
+                if audio_on: snd_choque.play()
 
             if ast['y'] > ALTO + 50:
                 estado['asteroides'].remove(ast)
@@ -224,6 +243,7 @@ while corriendo:
         if estado['nuevo_record']:
             pantalla_virtual.blit(fuente_grande.render("¡NUEVO RÉCORD!", True, DORADO), (ANCHO//2 - 180, ALTO//2 - 10))
 
+    # Efecto Screen Shake
     offset_x, offset_y = 0, 0
     if estado['temblor'] > 0:
         intensidad = estado['temblor'] // 2
