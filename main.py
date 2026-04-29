@@ -2,116 +2,119 @@ import pygame
 import sys
 import random
 import time
-import os
-import wave
-import math
-import struct
 
-# --- IHC: GENERADOR DE AUDIO SINTÉTICO ---
-def crear_archivos_de_sonido():
-    if not os.path.exists("laser.wav"):
-        with wave.open("laser.wav", "w") as f:
-            f.setparams((1, 2, 44100, 0, 'NONE', 'not compressed'))
-            for i in range(int(44100 * 0.15)):
-                freq = 1200 - (i / (44100 * 0.15)) * 800
-                val = int(8000 * math.sin(2 * math.pi * freq * (i / 44100.0)))
-                f.writeframes(struct.pack('<h', val))
-                
-    if not os.path.exists("choque.wav"):
-        with wave.open("choque.wav", "w") as f:
-            f.setparams((1, 2, 44100, 0, 'NONE', 'not compressed'))
-            for i in range(int(44100 * 0.6)):
-                volumen = 1.0 - (i / (44100 * 0.6))
-                val = int(15000 * volumen * random.uniform(-1.0, 1.0))
-                f.writeframes(struct.pack('<h', val))
-
-crear_archivos_de_sonido()
-
-# --- OPTIMIZACIÓN DE HARDWARE (Elimina el Input Lag) ---
-pygame.mixer.pre_init(44100, -16, 2, 512)
-
+# --- CONFIGURACIÓN ---
 pygame.init()
 pygame.joystick.init()
 
-try:
-    pygame.mixer.init()
-    snd_laser = pygame.mixer.Sound("laser.wav")
-    snd_choque = pygame.mixer.Sound("choque.wav")
-    snd_laser.set_volume(0.3)
-    snd_choque.set_volume(0.7)
-    audio_on = True
-except Exception as e:
-    print(f"IHC Audio Warning: {e}")
-    audio_on = False
-
 ANCHO, ALTO = 800, 600
 pantalla = pygame.display.set_mode((ANCHO, ALTO))
-pantalla_virtual = pygame.Surface((ANCHO, ALTO))
-pygame.display.set_caption("IHC Lab: Versión Final (Filtro Asimétrico)")
+pygame.display.set_caption("IHC Lab: Lunar Lander Pro + Ambiente")
 reloj = pygame.time.Clock()
 
+# Hardware
 if pygame.joystick.get_count() == 0:
-    print("Error: Conecta el joystick Acteck.")
     sys.exit()
 mi_joystick = pygame.joystick.Joystick(0)
 mi_joystick.init()
 
-# --- COLORES ---
-FONDO = (10, 5, 25)
-NAVE = (100, 200, 255)
-NAVE_PROPULSOR = (255, 100, 0)
-ASTEROIDE = (130, 120, 110)
-ASTEROIDE_BORDE = (100, 90, 80)
-LASER = (255, 50, 50)
-BLANCO = (255, 255, 255)
-DORADO = (255, 215, 0)
+# --- COLORES ESTILIZADOS ---
+FONDO = (5, 5, 20)
+NAVE_CUERPO = (200, 200, 200)
+NAVE_DETALLE = (150, 150, 150)
+FUEGO = (255, 100, 0)
+LUNA = (100, 100, 105)
+LUNA_SOMBRA = (80, 80, 85)
+PLATAFORMA_COLOR = (50, 255, 50)
+ROJO = (255, 50, 50)
+VERDE = (0, 255, 0)
+AZUL = (100, 200, 255)
+NARANJA = (255, 165, 0)
 
-# --- SISTEMA DE LOGS Y RÉCORDS ---
-def registrar_carrera(distancia, esquivados, destruidos):
+# --- GENERACIÓN DE AMBIENTE (ESTRELLAS Y METEOROS) ---
+crateres = [(random.randint(0, ANCHO), random.randint(ALTO - 40, ALTO), random.randint(5, 15)) for _ in range(15)]
+
+# 100 estrellas estáticas con brillo aleatorio
+estrellas = [(random.randint(0, ANCHO), random.randint(0, ALTO), random.randint(1, 2), random.randint(100, 255)) for _ in range(100)]
+
+def crear_meteoro():
+    """Genera un meteoro con trayectoria diagonal hacia abajo a la izquierda"""
+    return {
+        'x': random.randint(ANCHO, ANCHO + 800), # Nacen fuera de la pantalla a la derecha
+        'y': random.randint(-400, 0),          # Nacen arriba
+        'vx': random.uniform(-8, -4),          # Velocidad horizontal rápida
+        'vy': random.uniform(4, 8),            # Velocidad vertical rápida
+        'largo': random.randint(15, 40)        # Longitud de la estela
+    }
+
+meteoros = [crear_meteoro() for _ in range(3)]
+
+# --- FUNCIONES DE IHC ---
+def registrar_resultado(nivel, resultado, vel_final, fuel_gastado):
     timestamp = time.strftime("%Y-%m-%d %H:%M:%S")
-    with open("resultados_combate_ihc.txt", "a") as f:
-        f.write(f"[{timestamp}] Distancia: {distancia:.0f}m | Esquivados: {esquivados} | Destruidos: {destruidos}\n")
+    with open("resultados_ihc.txt", "a") as f:
+        f.write(f"[{timestamp}] Nivel: {nivel} | Res: {resultado} | Vel: {vel_final:.2f} | Fuel: {fuel_gastado:.1f}%\n")
 
-def cargar_record():
-    if os.path.exists("record_ihc.txt"):
-        try:
-            with open("record_ihc.txt", "r") as f: return float(f.read().strip())
-        except: return 0.0
-    return 0.0
-
-def guardar_record(nuevo_record):
-    with open("record_ihc.txt", "w") as f: f.write(str(nuevo_record))
-
-record_historico = cargar_record()
-estrellas = [(random.randint(0, ANCHO), random.randint(0, ALTO), random.uniform(1, 3)) for _ in range(100)]
-
-def reiniciar_carrera():
+def iniciar_nivel(nivel):
+    plat_ancho = max(30, 100 - (nivel - 1) * 15)
+    viento = 0.0 if nivel == 1 else random.uniform(-0.03, 0.03) * nivel
+    gravedad = 0.12 + (nivel - 1) * 0.005
+    max_fuel = max(40, 100 - (nivel - 1) * 10)
+    
     return {
-        'pos': [ANCHO // 2, ALTO - 100],
-        'asteroides': [],
-        'disparos': [],
-        'cooldown_arma': 0,
-        'velocidad_base': 5.0,
-        'distancia': 0,
-        'esquivados': 0,
-        'destruidos': 0,
-        'chocado': False,
+        'nivel': nivel,
+        'pos': [ANCHO // 2, 50],
+        'vel': [0, 0],
+        'combustible': max_fuel,
+        'max_combustible': max_fuel,
+        'terminado': False,
+        'exito': False,
+        'mensaje': "",
+        'color_msg': (255, 255, 255),
         'log_guardado': False,
-        'nuevo_record': False,
-        'temblor': 0,
-        'flash_rojo': False
+        'plat_ancho': plat_ancho,
+        'viento': viento,
+        'gravedad': gravedad
     }
 
-def crear_asteroide(velocidad_base):
-    return {
-        'x': random.randint(20, ANCHO - 20),
-        'y': -50,
-        'radio': random.randint(20, 45),
-        'vx': random.uniform(-1.5, 1.5), 
-        'vy': velocidad_base + random.uniform(1, 3) 
-    }
+estado = iniciar_nivel(1)
 
-estado = reiniciar_carrera()
+# --- FUNCIONES DE DIBUJO ---
+def dibujar_fondo(surface):
+    surface.fill(FONDO)
+    
+    # Dibujar estrellas
+    for e in estrellas:
+        pygame.draw.circle(surface, (e[3], e[3], e[3]), (e[0], e[1]), e[2])
+        
+    # Actualizar y dibujar meteoros (Efecto de ambiente)
+    for m in meteoros:
+        m['x'] += m['vx']
+        m['y'] += m['vy']
+        # Dibujar estela del meteoro (línea) y la cabeza (círculo)
+        pygame.draw.line(surface, (150, 150, 200), (m['x'], m['y']), (m['x'] - m['vx'] * 1.5, m['y'] - m['vy'] * 1.5), 2)
+        pygame.draw.circle(surface, (200, 200, 255), (int(m['x']), int(m['y'])), 2)
+        
+        # Si el meteoro sale de la pantalla, lo reciclamos
+        if m['x'] < -50 or m['y'] > ALTO + 50:
+            m.update(crear_meteoro())
+
+def dibujar_nave(surface, x, y, encendido):
+    puntos = [(x, y - 20), (x - 15, y + 10), (x + 15, y + 10)]
+    pygame.draw.polygon(surface, NAVE_CUERPO, puntos)
+    pygame.draw.line(surface, NAVE_DETALLE, (x - 15, y + 10), (x - 20, y + 20), 3)
+    pygame.draw.line(surface, NAVE_DETALLE, (x + 15, y + 10), (x + 20, y + 20), 3)
+    
+    if encendido:
+        puntos_fuego = [(x - 8, y + 12), (x, y + 30 + random.randint(0, 10)), (x + 8, y + 12)]
+        pygame.draw.polygon(surface, FUEGO, puntos_fuego)
+
+def dibujar_luna(surface, plat_ancho):
+    pygame.draw.rect(surface, LUNA, (0, ALTO - 50, ANCHO, 50))
+    for c in crateres:
+        pygame.draw.circle(surface, LUNA_SOMBRA, (c[0], c[1]), c[2])
+    plat_x = ANCHO // 2 - plat_ancho // 2
+    pygame.draw.rect(surface, PLATAFORMA_COLOR, (plat_x, ALTO - 55, plat_ancho, 10), border_radius=3)
 
 # --- BUCLE PRINCIPAL ---
 corriendo = True
@@ -119,140 +122,91 @@ while corriendo:
     for evento in pygame.event.get():
         if evento.type == pygame.QUIT: corriendo = False
 
-    # 1. LECTURA CRUDA DEL HARDWARE
-    eje_x_crudo = mi_joystick.get_axis(0)
-    eje_y_crudo = mi_joystick.get_axis(1)
-    gatillo_disparo = mi_joystick.get_button(0)
+    eje_x = mi_joystick.get_axis(0)
+    gatillo = mi_joystick.get_button(0)
     
     if mi_joystick.get_button(1): 
-        estado = reiniciar_carrera()
+        if estado['exito']:
+            estado = iniciar_nivel(estado['nivel'] + 1)
+        else:
+            estado = iniciar_nivel(estado['nivel'])
 
-    if not estado['chocado']:
-        # 2. FILTRO ASIMÉTRICO (Compensación de Hardware)
-        # 2. FILTRO ASIMÉTRICO EXTREMO (Calibrado para Max 6080)
-        eje_x = 0.0
-        eje_y = 0.0
-
-        # Eje X (Izquierda / Derecha)
-        if eje_x_crudo < -0.15:
-            # Izquierda funciona normal (llega hasta -1.0)
-            eje_x = (eje_x_crudo + 0.15) / 0.85 
+    # Lógica y Física
+    if not estado['terminado']:
+        estado['vel'][1] += estado['gravedad']
+        estado['vel'][0] += estado['viento']
+        
+        if gatillo and estado['combustible'] > 0:
+            estado['vel'][1] -= 0.35
+            estado['combustible'] -= 0.5
             
-        elif eje_x_crudo > 0.05: # Bajamos la zona muerta derecha porque tienes muy poco recorrido físico
-            # Derecha está dañada: El máximo físico detectado es ~0.185 (6080/32767)
-            # Rango útil: 0.185 - 0.05 = 0.135
-            eje_x = min(1.0, (eje_x_crudo - 0.05) / 0.135) 
+        if abs(eje_x) > 0.15: 
+            estado['vel'][0] += eje_x * 0.15
+        
+        estado['vel'][0] *= 0.98
+        estado['pos'][0] += estado['vel'][0]
+        estado['pos'][1] += estado['vel'][1]
 
-        # Eje Y (Arriba / Abajo)
-        if abs(eje_y_crudo) > 0.15:
-            eje_y = eje_y_crudo  
+        # Colisiones
+        nave_rect = pygame.Rect(estado['pos'][0] - 15, estado['pos'][1] - 20, 30, 40)
+        plat_x = ANCHO // 2 - estado['plat_ancho'] // 2
+        plat_rect = pygame.Rect(plat_x, ALTO - 55, estado['plat_ancho'], 10)
+        
+        if nave_rect.colliderect(plat_rect):
+            estado['terminado'] = True
+            if estado['vel'][1] < 2.5:
+                estado['mensaje'], estado['color_msg'] = "ATERRIZAJE PERFECTO", VERDE
+                estado['exito'] = True
+            else:
+                estado['mensaje'], estado['color_msg'] = "CÁPSULA DESTRUIDA", ROJO
+        elif estado['pos'][1] > ALTO - 30 or estado['pos'][0] < 0 or estado['pos'][0] > ANCHO:
+            estado['terminado'] = True
+            estado['mensaje'], estado['color_msg'] = "CRASH / FUERA DE RUTA", ROJO
 
-        # 3. MOVIMIENTO
-        estado['pos'][0] += eje_x * 8
-        estado['pos'][1] += eje_y * 6
-
-        estado['pos'][0] = max(20, min(ANCHO - 20, estado['pos'][0]))
-        estado['pos'][1] = max(50, min(ALTO - 50, estado['pos'][1]))
-
-        # Disparos y Efectos
-        if gatillo_disparo and estado['cooldown_arma'] == 0:
-            estado['disparos'].append({'x': estado['pos'][0], 'y': estado['pos'][1] - 25, 'vy': -15})
-            estado['cooldown_arma'] = 12
-            estado['temblor'] = 3 
-            if audio_on: snd_laser.play() 
-
-        if estado['cooldown_arma'] > 0: estado['cooldown_arma'] -= 1
-
-        estado['distancia'] += estado['velocidad_base'] / 10
-        estado['velocidad_base'] = 5.0 + (estado['distancia'] / 100)
-
-        if random.random() < (0.02 + (estado['velocidad_base'] / 500)):
-            estado['asteroides'].append(crear_asteroide(estado['velocidad_base']))
-
-        for i in range(len(estrellas)):
-            efecto_velocidad = estado['velocidad_base'] - (eje_y * 3) 
-            estrellas[i] = (estrellas[i][0], estrellas[i][1] + estrellas[i][2] + (efecto_velocidad/2), estrellas[i][2])
-            if estrellas[i][1] > ALTO: estrellas[i] = (random.randint(0, ANCHO), 0, estrellas[i][2])
-
-        for disparo in estado['disparos'][:]:
-            disparo['y'] += disparo['vy']
-            if disparo['y'] < -10:
-                estado['disparos'].remove(disparo)
-                continue
-            for ast in estado['asteroides'][:]:
-                if ((disparo['x'] - ast['x'])**2 + (disparo['y'] - ast['y'])**2)**0.5 < ast['radio']:
-                    estado['asteroides'].remove(ast)
-                    if disparo in estado['disparos']: estado['disparos'].remove(disparo)
-                    estado['destruidos'] += 1
-                    break
-
-        for ast in estado['asteroides'][:]:
-            ast['x'] += ast['vx']
-            ast['y'] += ast['vy'] - (eje_y * 2) 
-
-            if ((estado['pos'][0] - ast['x'])**2 + (estado['pos'][1] - ast['y'])**2)**0.5 < ast['radio'] + 15: 
-                estado['chocado'] = True
-                estado['temblor'] = 30       
-                estado['flash_rojo'] = True  
-                if audio_on: snd_choque.play()
-
-            if ast['y'] > ALTO + 50:
-                estado['asteroides'].remove(ast)
-                estado['esquivados'] += 1
-
-    if estado['chocado'] and not estado['log_guardado']:
-        registrar_carrera(estado['distancia'], estado['esquivados'], estado['destruidos'])
-        if estado['distancia'] > record_historico:
-            record_historico = estado['distancia']
-            guardar_record(record_historico)
-            estado['nuevo_record'] = True
+    # Guardar datos
+    if estado['terminado'] and not estado['log_guardado']:
+        fuel_usado = estado['max_combustible'] - estado['combustible']
+        registrar_resultado(estado['nivel'], estado['mensaje'], estado['vel'][1], fuel_usado)
         estado['log_guardado'] = True
 
     # --- RENDERIZADO VISUAL ---
-    pantalla_virtual.fill((150, 0, 0) if estado['flash_rojo'] else FONDO)
-    estado['flash_rojo'] = False
-
-    for e in estrellas: pygame.draw.circle(pantalla_virtual, BLANCO, (int(e[0]), int(e[1])), int(e[2]))
-
-    for disparo in estado['disparos']:
-        pygame.draw.rect(pantalla_virtual, LASER, (int(disparo['x'] - 2), int(disparo['y']), 4, 15))
-        pygame.draw.rect(pantalla_virtual, (255, 150, 150), (int(disparo['x'] - 1), int(disparo['y'] + 2), 2, 11))
-
-    for ast in estado['asteroides']:
-        pygame.draw.circle(pantalla_virtual, ASTEROIDE, (int(ast['x']), int(ast['y'])), ast['radio'])
-        pygame.draw.circle(pantalla_virtual, ASTEROIDE_BORDE, (int(ast['x']), int(ast['y'])), ast['radio'], 3)
-        pygame.draw.circle(pantalla_virtual, ASTEROIDE_BORDE, (int(ast['x'] - ast['radio']/3), int(ast['y'] - ast['radio']/3)), int(ast['radio']/4))
-
-    nx, ny = estado['pos'][0], estado['pos'][1]
-    puntos_nave = [(nx, ny - 25), (nx - 20, ny + 15), (nx, ny + 5), (nx + 20, ny + 15)]
-    pygame.draw.polygon(pantalla_virtual, NAVE, puntos_nave)
+    dibujar_fondo(pantalla)  # Dibuja estrellas y meteoros
+    dibujar_luna(pantalla, estado['plat_ancho'])
     
-    if not estado['chocado']:
-        largo_fuego = 35 if eje_y < -0.15 else (5 if eje_y > 0.15 else 15)
-        puntos_fuego = [(nx - 10, ny + 10), (nx, ny + 10 + largo_fuego + random.randint(0, 5)), (nx + 10, ny + 10)]
-        pygame.draw.polygon(pantalla_virtual, NAVE_PROPULSOR, puntos_fuego)
+    motor_activo = gatillo and estado['combustible'] > 0 and not estado['terminado']
+    dibujar_nave(pantalla, estado['pos'][0], estado['pos'][1], motor_activo)
+    
+    # --- INTERFAZ (UI) ESTILIZADA ---
+    fuente = pygame.font.SysFont("Courier New", 18, bold=True)
+    
+    porcentaje_fuel = estado['combustible'] / estado['max_combustible']
+    color_bar = VERDE if porcentaje_fuel > 0.3 else ROJO
+    pygame.draw.rect(pantalla, (50, 50, 50), (20, 50, 200, 20))
+    pygame.draw.rect(pantalla, color_bar, (20, 50, porcentaje_fuel * 200, 20))
+    pantalla.blit(fuente.render(f"FUEL: {estado['combustible']:.0f}/{estado['max_combustible']}", True, (255, 255, 255)), (20, 75))
+    
+    color_vel = VERDE if estado['vel'][1] < 2.5 else (255, 255, 255)
+    txt_vel = fuente.render(f"VELOCIDAD: {estado['vel'][1]:.2f}", True, color_vel)
+    pantalla.blit(txt_vel, (20, 20))
 
-    fuente = pygame.font.SysFont("Courier New", 20, bold=True)
-    pantalla_virtual.blit(fuente.render(f"DIST: {estado['distancia']:.0f}m", True, BLANCO), (20, 20))
-    pantalla_virtual.blit(fuente.render(f"CAZA: {estado['destruidos']}", True, (255, 100, 100)), (ANCHO - 150, 20))
-    pantalla_virtual.blit(fuente.render(f"RÉCORD: {record_historico:.0f}m", True, DORADO), (ANCHO // 2 - 80, 20))
+    txt_nivel = fuente.render(f"NIVEL: {estado['nivel']}", True, AZUL)
+    pantalla.blit(txt_nivel, (ANCHO - 120, 20))
+    
+    if estado['viento'] != 0:
+        dir_viento = "->" if estado['viento'] > 0 else "<-"
+        txt_viento = fuente.render(f"VIENTO: {dir_viento} {abs(estado['viento']):.3f}", True, NARANJA)
+        pantalla.blit(txt_viento, (ANCHO - 180, 50))
 
-    if estado['chocado']:
-        fuente_grande = pygame.font.SysFont("Courier New", 50, bold=True)
-        pantalla_virtual.blit(fuente_grande.render("¡NAVE DESTRUIDA!", True, (255, 50, 50)), (ANCHO//2 - 210, ALTO//2 - 60))
-        if estado['nuevo_record']:
-            pantalla_virtual.blit(fuente_grande.render("¡NUEVO RÉCORD!", True, DORADO), (ANCHO//2 - 180, ALTO//2 - 10))
-
-    # Efecto Screen Shake
-    offset_x, offset_y = 0, 0
-    if estado['temblor'] > 0:
-        intensidad = estado['temblor'] // 2
-        offset_x = random.randint(-intensidad, intensidad)
-        offset_y = random.randint(-intensidad, intensidad)
-        estado['temblor'] -= 1
-
-    pantalla.fill((0, 0, 0)) 
-    pantalla.blit(pantalla_virtual, (offset_x, offset_y))
+    if estado['mensaje']:
+        fuente_msg = pygame.font.SysFont("Courier New", 40, bold=True)
+        txt_msg = fuente_msg.render(estado['mensaje'], True, estado['color_msg'])
+        rect_msg = txt_msg.get_rect(center=(ANCHO // 2, ALTO // 2 - 30))
+        pantalla.blit(txt_msg, rect_msg)
+        
+        instruccion = "Botón 1 -> SIGUIENTE NIVEL" if estado['exito'] else "Botón 1 -> REINTENTAR"
+        txt_inst = fuente.render(instruccion, True, (200, 200, 200))
+        rect_inst = txt_inst.get_rect(center=(ANCHO // 2, ALTO // 2 + 30))
+        pantalla.blit(txt_inst, rect_inst)
 
     pygame.display.flip()
     reloj.tick(60)
