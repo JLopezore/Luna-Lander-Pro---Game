@@ -77,6 +77,23 @@ def crear_archivos_de_sonido():
 
 crear_archivos_de_sonido()
 
+ARCHIVO_RECORD = "record_ihc.txt"
+
+def cargar_record():
+    """Lee el récord desde el archivo. Si no existe, devuelve 0."""
+    if os.path.exists(ARCHIVO_RECORD):
+        with open(ARCHIVO_RECORD, "r") as archivo:
+            try:
+                return int(archivo.read())
+            except ValueError:
+                return 0 # Por si el archivo está vacío o corrupto
+    return 0
+
+def guardar_record(nuevo_record):
+    """Guarda el nuevo récord en el archivo."""
+    with open(ARCHIVO_RECORD, "w") as archivo:
+        archivo.write(str(nuevo_record))
+
 # --- CONFIGURACIÓN E INICIALIZACIÓN ---
 # Buffer en 1024: Evita el lag del joystick pero le da estabilidad a ALSA
 pygame.mixer.pre_init(44100, -16, 2, 1024)
@@ -170,10 +187,15 @@ def crear_meteoro():
     }
 meteoros = [crear_meteoro() for _ in range(3)]
 
-def registrar_resultado(nivel, resultado, vel_final, fuel_gastado):
+def registrar_resultado(nivel, resultado, vel_final, fuel_gastado, record_actual):
+    nuevo_record = record_actual
+    if puntaje_actual > record_actual:
+        nuevo_record = puntaje_actual
+        guardar_record(nuevo_record)
     timestamp = time.strftime("%Y-%m-%d %H:%M:%S")
     with open("resultados_ihc.txt", "a") as f:
         f.write(f"[{timestamp}] Nivel: {nivel} | Res: {resultado} | Vel: {vel_final:.2f} | Fuel: {fuel_gastado:.1f}%\n")
+    return nuevo_record
 
 def iniciar_nivel(nivel):
     plat_ancho = max(30, 100 - (nivel - 1) * 15)
@@ -229,6 +251,10 @@ def dibujar_luna(surface, plat_ancho):
         pygame.draw.circle(surface, LUNA_SOMBRA, (c[0], c[1]), c[2])
     plat_x = ANCHO // 2 - plat_ancho // 2
     pygame.draw.rect(surface, PLATAFORMA_COLOR, (plat_x, ALTO - 55, plat_ancho, 10), border_radius=3)
+
+# Cargar el récord antes de empezar a jugar
+record_maximo = cargar_record()
+puntaje_actual = 0  # Esta variable ya la debes tener en tu juego
 
 # --- BUCLE PRINCIPAL ---
 corriendo = True
@@ -321,10 +347,13 @@ while corriendo:
 
     if estado['terminado'] and not estado['log_guardado']:
         fuel_usado = estado['max_combustible'] - estado['combustible']
-        registrar_resultado(estado['nivel'], estado['mensaje'], estado['vel'][1], fuel_usado)
+        if estado['exito']:
+            # Puntaje base por aterrizaje exitoso + bono por combustible restante.
+            puntaje_actual += 100 + int(max(0, estado['combustible']))
+        record_maximo = registrar_resultado(estado['nivel'], estado['mensaje'], estado['vel'][1], fuel_usado, record_maximo)
         estado['log_guardado'] = True
 
-    # --- RENDERIZADO VISUAL (AHORA SOBRE PANTALLA VIRTUAL) ---
+   # --- RENDERIZADO VISUAL (AHORA SOBRE PANTALLA VIRTUAL) ---
     dibujar_fondo(pantalla_virtual)
     dibujar_luna(pantalla_virtual, estado['plat_ancho'])
     dibujar_nave(pantalla_virtual, estado['pos'][0], estado['pos'][1], motor_activo)
@@ -344,13 +373,23 @@ while corriendo:
     txt_control = fuente.render("MODO: JOYSTICK" if usar_joystick else "MODO: TECLADO", True, (150, 150, 150))
     pantalla_virtual.blit(txt_control, (20, ALTO - 30))
 
+    hud_x = ANCHO - 20
+
     txt_nivel = fuente.render(f"NIVEL: {estado['nivel']}", True, AZUL)
-    pantalla_virtual.blit(txt_nivel, (ANCHO - 120, 20))
+    pantalla_virtual.blit(txt_nivel, txt_nivel.get_rect(topright=(hud_x, 20)))
     
+    # --- DIBUJAR EL RÉCORD Y PUNTAJE ---
+    # Asumiendo que tienes estas variables disponibles en tu función o de forma global
+    txt_puntaje = fuente.render(f"PUNTOS: {puntaje_actual}", True, (255, 255, 255))
+    pantalla_virtual.blit(txt_puntaje, txt_puntaje.get_rect(topright=(hud_x, 50)))
+    
+    txt_record = fuente.render(f"RÉCORD: {record_maximo}", True, (255, 215, 0))
+    pantalla_virtual.blit(txt_record, txt_record.get_rect(topright=(hud_x, 80)))
+
     if estado['viento'] != 0:
         dir_viento = "->" if estado['viento'] > 0 else "<-"
         txt_viento = fuente.render(f"VIENTO: {dir_viento} {abs(estado['viento']):.3f}", True, NARANJA)
-        pantalla_virtual.blit(txt_viento, (ANCHO - 180, 50))
+        pantalla_virtual.blit(txt_viento, txt_viento.get_rect(topright=(hud_x, 110)))
 
     if estado['mensaje']:
         fuente_msg = pygame.font.SysFont("Courier New", 40, bold=True)
