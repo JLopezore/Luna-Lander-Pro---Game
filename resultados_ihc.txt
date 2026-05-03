@@ -272,3 +272,84 @@
 [2026-05-03 13:40:33] Nivel: 2 | Res: CRASH / FUERA DE RUTA | Vel: -14.12 | Fuel: 90.0%
 [2026-05-03 13:40:39] Nivel: 2 | Res: CÁPSULA DESTRUIDA | Vel: 3.60 | Fuel: 12.0%
 [2026-05-03 13:40:51] Nivel: 2 | Res: CRASH / FUERA DE RUTA | Vel: 23.87 | Fuel: 90.0%
+[2026-05-03 13:45:41] Nivel: 1 | Res: CÁPSULA DESTRUIDA | Vel: 7.09 | Fuel: 12.5%
+[2026-05-03 13:45:45] Nivel: 1 | Res: CÁPSULA DESTRUIDA | Vel: 3.80 | Fuel: 16.0%
+[2026-05-03 13:45:47] Nivel: 1 | Res: CÁPSULA DESTRUIDA | Vel: 10.68 | Fuel: 0.0%
+[2026-05-03 13:45:50] Nivel: 1 | Res: CRASH / FUERA DE RUTA | Vel: 11.16 | Fuel: 0.0%
+[2026-05-03 13:45:53] Nivel: 1 | Res: CÁPSULA DESTRUIDA | Vel: 3.82 | Fuel: 17.0%
+[2026-05-03 13:45:57] Nivel: 1 | Res: ATERRIZAJE PERFECTO | Vel: 2.34 | Fuel: 33.0%
+[2026-05-03 13:46:01] Nivel: 2 | Res: CÁPSULA DESTRUIDA | Vel: 2.50 | Fuel: 15.0%
+[2026-05-03 13:46:05] Nivel: 2 | Res: ATERRIZAJE PERFECTO | Vel: 1.70 | Fuel: 36.5%
+[2026-05-03 13:46:13] Nivel: 3 | Res: ATERRIZAJE PERFECTO | Vel: 1.05 | Fuel: 57.0%
+[2026-05-03 13:46:20] Nivel: 4 | Res: ATERRIZAJE PERFECTO | Vel: 2.30 | Fuel: 29.5%
+[2026-05-03 13:46:29] Nivel: 5 | Res: CRASH / FUERA DE RUTA | Vel: 5.04 | Fuel: 60.0%
+[2026-05-03 13:46:31] Nivel: 5 | Res: CÁPSULA DESTRUIDA | Vel: 11.48 | Fuel: 0.0%
+[2026-05-03 13:46:34] Nivel: 5 | Res: CRASH / FUERA DE RUTA | Vel: 6.51 | Fuel: 18.5%
+[2026-05-03 13:46:38] Nivel: 5 | Res: CÁPSULA DESTRUIDA | Vel: 3.85 | Fuel: 30.5%
+[2026-05-03 13:46:41] Nivel: 5 | Res: ATERRIZAJE PERFECTO | Vel: 2.31 | Fuel: 19.5%
+[2026-05-03 13:46:45] Nivel: 6 | Res: CRASH / FUERA DE RUTA | Vel: 12.32 | Fuel: 0.0%
+[2026-05-03 13:46:48] Nivel: 6 | Res: CRASH / FUERA DE RUTA | Vel: 12.32 | Fuel: 0.0%
+[2026-05-03 13:46:50] Nivel: 6 | Res: CRASH / FUERA DE RUTA | Vel: 11.61 | Fuel: 3.5%
+[2026-05-03 13:46:53] Nivel: 6 | Res: CRASH / FUERA DE RUTA | Vel: 10.26 | Fuel: 7.5%
+[2026-05-03 13:46:56] Nivel: 6 | Res: CRASH / FUERA DE RUTA | Vel: 8.78 | Fuel: 9.0%
+[2026-05-03 13:46:59] Nivel: 6 | Res: CRASH / FUERA DE RUTA | Vel: 6.99 | Fuel: 13.0%
+[2026-05-03 13:47:02] Nivel: 6 | Res: CRASH / FUERA DE RUTA | Vel: 12.32 | Fuel: 0.0%
+[2026-05-03 13:47:04] Nivel: 6 | Res: CRASH / FUERA DE RUTA | Vel: 7.99 | Fuel: 18.0%
+[2026-05-03 13:47:08] Nivel: 6 | Res: CRASH / FUERA DE RUTA | Vel: 10.34 | Fuel: 10.5%
+[2026-05-03 13:47:12] Nivel: 6 | Res: CRASH / FUERA DE RUTA | Vel: 2.94 | Fuel: 39.5%
+[2026-05-03 13:47:15] Nivel: 6 | Res: CRASH / FUERA DE RUTA | Vel: 12.32 | Fuel: 0.0%
+[2026-05-03 13:47:17] Nivel: 6 | Res: CRASH / FUERA DE RUTA | Vel: 12.32 | Fuel: 0.0%
+[2026-05-03 13:47:19] Nivel: 6 | Res: CRASH / FUERA DE RUTA | Vel: 12.32 | Fuel: 0.0%
+[2026-05-03 13:47:21] Nivel: 6 | Res: CRASH / FUERA DE RUTA | Vel: 12.32 | Fuel: 0.0%
+[2026-05-03 13:47:23] Nivel: 6 | Res: CRASH / FUERA DE RUTA | Vel: 12.32 | Fuel: 0.0%
+[2026-05-03 13:47:25] Nivel: 6 | Res: CRASH / FUERA DE RUTA | Vel: 12.32 | Fuel: 0.0%
+[2026-05-03 13:47:27] Nivel: 6 | Res: CÁPSULA DESTRUIDA | Vel: 11.74 | Fuel: 0.0%
+[2026-05-03 13:47:29] Nivel: 6 | Res: CRASH / FUERA DE RUTA | Vel: 12.32 | Fuel: 0.0%
+[2026-05-03 13:47:30] Nivel: 6 | Res: CRASH / FUERA DE RUTA | Vel: 12.32 | Fuel: 0.0%
+[2026-05-03 13:47:32] Nivel: 6 | Res: CRASH / FUERA DE RUTA | Vel: 12.32 | Fuel: 0.0%
+[2026-05-03 13:47:34] Nivel: 6 | Res: CRASH / FUERA DE RUTA | Vel: 12.32 | Fuel: 0.0%
+[2026-05-03 13:47:37] Nivel: 6 | Res: CRASH / FUERA DE RUTA | Vel: 12.32 | Fuel: 0.0%
+[2026-05-03 13:47:39] Nivel: 6 | Res: CRASH / FUERA DE RUTA | Vel: 12.32 | Fuel: 0.0%
+[2026-05-03 13:47:41] Nivel: 6 | Res: CRASH / FUERA DE RUTA | Vel: 12.32 | Fuel: 0.0%
+[2026-05-03 13:47:44] Nivel: 6 | Res: CRASH / FUERA DE RUTA | Vel: 12.32 | Fuel: 0.0%
+[2026-05-03 13:47:47] Nivel: 6 | Res: CRASH / FUERA DE RUTA | Vel: 12.32 | Fuel: 0.0%
+[2026-05-03 13:48:06] Nivel: 6 | Res: CRASH / FUERA DE RUTA | Vel: 12.32 | Fuel: 0.0%
+[2026-05-03 13:48:10] Nivel: 6 | Res: CRASH / FUERA DE RUTA | Vel: 12.32 | Fuel: 0.0%
+[2026-05-03 13:48:13] Nivel: 6 | Res: CRASH / FUERA DE RUTA | Vel: 12.32 | Fuel: 0.0%
+[2026-05-03 13:48:15] Nivel: 6 | Res: CRASH / FUERA DE RUTA | Vel: 12.32 | Fuel: 0.0%
+[2026-05-03 13:48:17] Nivel: 6 | Res: CRASH / FUERA DE RUTA | Vel: 12.32 | Fuel: 0.0%
+[2026-05-03 13:48:19] Nivel: 6 | Res: CRASH / FUERA DE RUTA | Vel: 12.32 | Fuel: 0.0%
+[2026-05-03 13:48:21] Nivel: 6 | Res: CRASH / FUERA DE RUTA | Vel: 12.32 | Fuel: 0.0%
+[2026-05-03 13:48:23] Nivel: 6 | Res: CÁPSULA DESTRUIDA | Vel: 11.74 | Fuel: 0.0%
+[2026-05-03 13:48:25] Nivel: 6 | Res: CRASH / FUERA DE RUTA | Vel: 12.32 | Fuel: 0.0%
+[2026-05-03 13:48:27] Nivel: 6 | Res: CRASH / FUERA DE RUTA | Vel: 12.32 | Fuel: 0.0%
+[2026-05-03 13:55:21] Nivel: 1 | Res: CÁPSULA DESTRUIDA | Vel: 10.68 | Fuel: 0.0%
+[2026-05-03 13:55:26] Nivel: 1 | Res: ATERRIZAJE PERFECTO | Vel: 2.00 | Fuel: 28.0%
+[2026-05-03 13:55:31] Nivel: 2 | Res: CÁPSULA DESTRUIDA | Vel: 5.63 | Fuel: 15.0%
+[2026-05-03 13:55:36] Nivel: 2 | Res: CÁPSULA DESTRUIDA | Vel: 3.32 | Fuel: 29.0%
+[2026-05-03 13:55:41] Nivel: 2 | Res: CÁPSULA DESTRUIDA | Vel: 3.17 | Fuel: 46.0%
+[2026-05-03 13:55:48] Nivel: 2 | Res: ATERRIZAJE PERFECTO | Vel: 0.85 | Fuel: 39.5%
+[2026-05-03 14:01:43] Nivel: 1 | Res: CÁPSULA DESTRUIDA | Vel: 10.68 | Fuel: 0.0%
+[2026-05-03 14:01:47] Nivel: 1 | Res: CÁPSULA DESTRUIDA | Vel: 3.38 | Fuel: 19.0%
+[2026-05-03 14:01:52] Nivel: 1 | Res: ATERRIZAJE PERFECTO | Vel: 2.28 | Fuel: 36.0%
+[2026-05-03 14:05:18] Nivel: 1 | Res: CÁPSULA DESTRUIDA | Vel: 5.05 | Fuel: 12.5%
+[2026-05-03 14:05:21] Nivel: 1 | Res: CÁPSULA DESTRUIDA | Vel: 9.34 | Fuel: 5.0%
+[2026-05-03 14:05:23] Nivel: 1 | Res: CÁPSULA DESTRUIDA | Vel: 10.68 | Fuel: 0.0%
+[2026-05-03 14:08:20] Nivel: 1 | Res: CÁPSULA DESTRUIDA | Vel: 10.68 | Fuel: 0.0%
+[2026-05-03 14:08:25] Nivel: 1 | Res: CÁPSULA DESTRUIDA | Vel: 8.84 | Fuel: 4.0%
+[2026-05-03 14:08:32] Nivel: 1 | Res: ATERRIZAJE PERFECTO | Vel: 0.80 | Fuel: 70.0%
+[2026-05-03 14:08:50] Nivel: 1 | Res: CÁPSULA DESTRUIDA | Vel: 10.68 | Fuel: 0.0%
+[2026-05-03 14:08:54] Nivel: 1 | Res: CÁPSULA DESTRUIDA | Vel: 10.68 | Fuel: 0.0%
+[2026-05-03 14:09:23] Nivel: 1 | Res: CÁPSULA DESTRUIDA | Vel: 10.68 | Fuel: 0.0%
+[2026-05-03 14:09:37] Nivel: 1 | Res: ATERRIZAJE PERFECTO | Vel: 1.50 | Fuel: 39.0%
+[2026-05-03 14:10:59] Nivel: 1 | Res: CÁPSULA DESTRUIDA | Vel: 10.68 | Fuel: 0.0%
+[2026-05-03 14:11:09] Nivel: 1 | Res: CÁPSULA DESTRUIDA | Vel: 4.91 | Fuel: 11.5%
+[2026-05-03 14:11:25] Nivel: 1 | Res: ATERRIZAJE PERFECTO | Vel: 1.37 | Fuel: 74.5%
+[2026-05-03 14:11:30] Nivel: 2 | Res: CRASH / FUERA DE RUTA | Vel: 5.80 | Fuel: 16.0%
+[2026-05-03 14:12:29] Nivel: 1 | Res: CÁPSULA DESTRUIDA | Vel: 10.68 | Fuel: 0.0%
+[2026-05-03 14:12:33] Nivel: 1 | Res: ATERRIZAJE PERFECTO | Vel: 1.09 | Fuel: 30.5%
+[2026-05-03 14:12:38] Nivel: 2 | Res: ATERRIZAJE PERFECTO | Vel: 1.68 | Fuel: 36.0%
+[2026-05-03 14:12:40] Nivel: 3 | Res: CÁPSULA DESTRUIDA | Vel: 4.55 | Fuel: 13.0%
+[2026-05-03 14:12:44] Nivel: 3 | Res: ATERRIZAJE PERFECTO | Vel: 1.29 | Fuel: 34.0%
+[2026-05-03 14:12:51] Nivel: 4 | Res: CRASH / FUERA DE RUTA | Vel: 5.40 | Fuel: 70.0%
+[2026-05-03 14:12:57] Nivel: 4 | Res: CÁPSULA DESTRUIDA | Vel: 2.58 | Fuel: 48.0%

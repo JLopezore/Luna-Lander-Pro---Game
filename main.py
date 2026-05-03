@@ -7,61 +7,100 @@ import wave
 import math
 import struct
 
-# --- IHC: GENERACIÓN SINTÉTICA DE AUDIO MEJORADA ---
+# --- IHC: GENERACIÓN SINTÉTICA DE AUDIO (NATIVO STEREO) ---
 def crear_archivos_de_sonido():
-    # 1. Propulsor (Se mantiene igual)
-    if not os.path.exists("propulsor.wav"):
-        with wave.open("propulsor.wav", "w") as f:
-            f.setparams((1, 2, 44100, 0, 'NONE', 'not compressed'))
+    # 1. Propulsor (Se mantiene igual, solo actualizamos el nombre)
+    if not os.path.exists("propulsor_v4.wav"):
+        with wave.open("propulsor_v4.wav", "w") as f:
+            f.setparams((2, 2, 44100, 0, 'NONE', 'not compressed'))
             for i in range(int(44100 * 0.2)): 
                 val = int(4000 * random.uniform(-1.0, 1.0))
-                f.writeframes(struct.pack('<h', val))
+                f.writeframes(struct.pack('<hh', val, val)) 
                 
-    # 2. Choque V2 (Más largo, más fuerte y con efecto de retumbar "rumble")
-    if not os.path.exists("choque_v2.wav"):
-        with wave.open("choque_v2.wav", "w") as f:
-            f.setparams((1, 2, 44100, 0, 'NONE', 'not compressed'))
-            for i in range(int(44100 * 1.5)): # Aumentado a 1.5 segundos
-                volumen = 1.0 - (i / (44100 * 1.5))
-                # Añadimos un oscilador de baja frecuencia (15Hz) para hacer que el ruido "tiemble"
-                modulador = math.sin(2 * math.pi * 15 * (i / 44100.0))
-                val = int(22000 * volumen * random.uniform(-1.0, 1.0) * (0.5 + 0.5 * modulador))
-                f.writeframes(struct.pack('<h', val))
+    # 2. Choque (Impacto seco y explosión)
+    if not os.path.exists("choque_v4.wav"):
+        with wave.open("choque_v4.wav", "w") as f:
+            f.setparams((2, 2, 44100, 0, 'NONE', 'not compressed'))
+            for i in range(int(44100 * 1.5)): 
+                t = i / 44100.0
+                # Decaimiento exponencial: golpe inicial fuerte que se desvanece rápido
+                volumen = math.exp(-4.0 * t) 
+                # Ruido blanco puro para simular la explosión
+                val = int(25000 * volumen * random.uniform(-1.0, 1.0))
+                f.writeframes(struct.pack('<hh', val, val))
 
-    # 3. Éxito V2 (Acorde de Do Mayor para sensación de triunfo)
-    if not os.path.exists("exito_v2.wav"):
-        with wave.open("exito_v2.wav", "w") as f:
-            f.setparams((1, 2, 44100, 0, 'NONE', 'not compressed'))
-            for i in range(int(44100 * 2.0)): # Aumentado a 2.0 segundos
-                volumen = 1.0 - (i / (44100 * 2.0))
-                # Mezclamos tres frecuencias (C5, E5, G5)
-                onda1 = math.sin(2 * math.pi * 523.25 * (i / 44100.0))
-                onda2 = math.sin(2 * math.pi * 659.25 * (i / 44100.0))
-                onda3 = math.sin(2 * math.pi * 783.99 * (i / 44100.0))
-                val = int(8000 * volumen * (onda1 + onda2 + onda3) / 3)
-                f.writeframes(struct.pack('<h', val))
+    # 3. Éxito (Arpegio ascendente tipo "Nivel Completado")
+    if not os.path.exists("exito_v4.wav"):
+        with wave.open("exito_v4.wav", "w") as f:
+            f.setparams((2, 2, 44100, 0, 'NONE', 'not compressed'))
+            for i in range(int(44100 * 1.5)): 
+                t = i / 44100.0
+                
+                # Dividimos el tiempo para tocar tres notas secuenciales
+                if t < 0.15:
+                    freq = 523.25  # Nota C5 (Do)
+                    volumen = 1.0
+                elif t < 0.30:
+                    freq = 783.99  # Nota G5 (Sol)
+                    volumen = 1.0
+                else:
+                    freq = 1046.50 # Nota C6 (Do agudo)
+                    # La última nota se desvanece suavemente
+                    volumen = math.exp(-3.0 * (t - 0.30))
+                
+                onda = math.sin(2 * math.pi * freq * t)
+                val = int(12000 * volumen * onda)
+                f.writeframes(struct.pack('<hh', val, val))
+    # 4. Ambiente Espacial (Zumbido grave y continuo tipo "drone")
+    if not os.path.exists("ambiente_v4.wav"):
+        with wave.open("ambiente_v4.wav", "w") as f:
+            duracion = 4.0 # Hacemos un loop de 4 segundos
+            f.setparams((2, 2, 44100, 0, 'NONE', 'not compressed'))
+            for i in range(int(44100 * duracion)): 
+                t = i / 44100.0
+                
+                # Dos ondas muy graves y ligeramente desafinadas para dar sensación de vacío/tensión
+                onda1 = math.sin(2 * math.pi * 55.0 * t) 
+                onda2 = math.sin(2 * math.pi * 57.5 * t) 
+                
+                # Un LFO (Low Frequency Oscillator) para hacer que el volumen "respire" (suba y baje lentamente)
+                modulador_volumen = 0.5 + 0.5 * math.sin(2 * math.pi * 0.25 * t)
+                
+                # Un poco de ruido estático muy tenue
+                ruido = random.uniform(-0.15, 0.15)
+                
+                # Mezclamos todo con un volumen moderado para que no sature los demás efectos
+                mezcla = (onda1 * 0.5) + (onda2 * 0.5) + ruido
+                val = int(6000 * modulador_volumen * mezcla)
+                
+                f.writeframes(struct.pack('<hh', val, val))
 
 crear_archivos_de_sonido()
 
 # --- CONFIGURACIÓN E INICIALIZACIÓN ---
-pygame.mixer.pre_init(44100, -16, 2, 512)
+# Buffer en 1024: Evita el lag del joystick pero le da estabilidad a ALSA
+pygame.mixer.pre_init(44100, -16, 2, 1024)
 pygame.init()
 pygame.joystick.init()
 
+# --- PARCHE DE TOLERANCIA A FALLOS DE AUDIO ---
 try:
     pygame.mixer.init()
-    snd_prop = pygame.mixer.Sound("propulsor.wav")
-    snd_choque = pygame.mixer.Sound("choque_v2.wav")
-    snd_exito = pygame.mixer.Sound("exito_v2.wav")
+    snd_prop = pygame.mixer.Sound("propulsor_v4.wav")
+    snd_choque = pygame.mixer.Sound("choque_v4.wav")
+    snd_exito = pygame.mixer.Sound("exito_v4.wav")
     snd_prop.set_volume(0.3)
-    snd_choque.set_volume(0.8) # Más volumen al choque
+    snd_choque.set_volume(0.8) 
     snd_exito.set_volume(0.5)
     
     canal_motor = pygame.mixer.Channel(0) 
+    canal_sfx = pygame.mixer.Channel(1) 
     audio_on = True
 except Exception as e:
-    print(f"Advertencia de Audio: {e}")
+    print(f"Advertencia de Audio: {e}. El juego iniciará en Modo Silencioso.")
     audio_on = False
+    canal_motor = None
+    canal_sfx = None # <--- Inicializar en nulo para evitar errores
 
 ANCHO, ALTO = 800, 600
 pantalla = pygame.display.set_mode((ANCHO, ALTO))
@@ -193,6 +232,14 @@ def dibujar_luna(surface, plat_ancho):
 
 # --- BUCLE PRINCIPAL ---
 corriendo = True
+# Cargar la música de fondo
+pygame.mixer.music.load("ambiente_v4.wav")
+
+# Bajarle un poco el volumen para que sea sutil
+pygame.mixer.music.set_volume(0.3)
+
+# El -1 le indica a Pygame que lo reproduzca en un bucle infinito
+pygame.mixer.music.play(-1)
 while corriendo:
     for evento in pygame.event.get():
         if evento.type == pygame.QUIT: 
@@ -249,23 +296,28 @@ while corriendo:
         
         if nave_rect.colliderect(plat_rect):
             estado['terminado'] = True
-            if canal_motor.get_busy(): canal_motor.stop()
+            if audio_on and canal_motor and canal_motor.get_busy(): 
+                canal_motor.stop()
             
             if estado['vel'][1] < 2.5:
                 estado['mensaje'], estado['color_msg'] = "ATERRIZAJE PERFECTO", VERDE
                 estado['exito'] = True
-                if audio_on: snd_exito.play()
+                # NUEVO: Forzar reproducción en el canal de efectos
+                if audio_on and canal_sfx: canal_sfx.play(snd_exito) 
             else:
                 estado['mensaje'], estado['color_msg'] = "CÁPSULA DESTRUIDA", ROJO
-                estado['temblor'] = 30 # <--- Activamos el temblor de pantalla (30 frames)
-                if audio_on: snd_choque.play()
+                estado['temblor'] = 30 
+                # NUEVO: Forzar reproducción en el canal de efectos
+                if audio_on and canal_sfx: canal_sfx.play(snd_choque) 
                 
         elif estado['pos'][1] > ALTO - 30 or estado['pos'][0] < 0 or estado['pos'][0] > ANCHO:
             estado['terminado'] = True
             estado['mensaje'], estado['color_msg'] = "CRASH / FUERA DE RUTA", ROJO
-            estado['temblor'] = 30 # <--- Activamos el temblor de pantalla
-            if canal_motor.get_busy(): canal_motor.stop()
-            if audio_on: snd_choque.play()
+            estado['temblor'] = 30
+            if audio_on and canal_motor and canal_motor.get_busy(): 
+                canal_motor.stop()
+            # NUEVO: Forzar reproducción en el canal de efectos
+            if audio_on and canal_sfx: canal_sfx.play(snd_choque)
 
     if estado['terminado'] and not estado['log_guardado']:
         fuel_usado = estado['max_combustible'] - estado['combustible']
