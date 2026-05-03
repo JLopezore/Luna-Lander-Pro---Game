@@ -243,3 +243,8 @@
 [2026-04-28 23:54:30] Nivel: 4 | Res: CRASH / FUERA DE RUTA | Vel: 11.88 | Fuel: 0.0%
 [2026-04-28 23:54:37] Nivel: 4 | Res: CRASH / FUERA DE RUTA | Vel: -6.85 | Fuel: 47.0%
 [2026-04-28 23:54:44] Nivel: 4 | Res: CRASH / FUERA DE RUTA | Vel: 11.88 | Fuel: 0.0%
+[2026-05-03 13:23:19] Nivel: 1 | Res: CÁPSULA DESTRUIDA | Vel: 10.68 | Fuel: 0.0%
+[2026-05-03 13:23:25] Nivel: 1 | Res: ATERRIZAJE PERFECTO | Vel: 0.74 | Fuel: 31.0%
+[2026-05-03 13:23:32] Nivel: 2 | Res: CÁPSULA DESTRUIDA | Vel: 3.48 | Fuel: 49.5%
+[2026-05-03 13:27:51] Nivel: 2 | Res: ATERRIZAJE PERFECTO | Vel: 2.00 | Fuel: 72.5%
+[2026-05-03 13:27:59] Nivel: 3 | Res: CRASH / FUERA DE RUTA | Vel: 7.01 | Fuel: 66.5%

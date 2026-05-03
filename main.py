@@ -12,12 +12,6 @@ pantalla = pygame.display.set_mode((ANCHO, ALTO))
 pygame.display.set_caption("IHC Lab: Lunar Lander Pro + Ambiente")
 reloj = pygame.time.Clock()
 
-# Hardware
-if pygame.joystick.get_count() == 0:
-    sys.exit()
-mi_joystick = pygame.joystick.Joystick(0)
-mi_joystick.init()
-
 # --- COLORES ESTILIZADOS ---
 FONDO = (5, 5, 20)
 NAVE_CUERPO = (200, 200, 200)
@@ -31,20 +25,63 @@ VERDE = (0, 255, 0)
 AZUL = (100, 200, 255)
 NARANJA = (255, 165, 0)
 
+# --- IHC: TOLERANCIA A FALLOS (PANTALLA DE DETECCIÓN) ---
+usar_joystick = False
+tiempo_inicio = pygame.time.get_ticks()
+fuente_espera = pygame.font.SysFont("Courier New", 24, bold=True)
+
+while True:
+    pantalla.fill(FONDO)
+    for evento in pygame.event.get():
+        if evento.type == pygame.QUIT:
+            pygame.quit()
+            sys.exit()
+
+    # Refrescar la búsqueda de hardware
+    pygame.joystick.quit()
+    pygame.joystick.init()
+
+    # Si detecta el joystick, salimos del bucle de espera inmediatamente
+    if pygame.joystick.get_count() > 0:
+        mi_joystick = pygame.joystick.Joystick(0)
+        mi_joystick.init()
+        usar_joystick = True
+        break
+
+    # Calcular tiempo restante
+    tiempo_actual = pygame.time.get_ticks()
+    tiempo_restante = 10 - (tiempo_actual - tiempo_inicio) // 1000
+
+    # Si se acaba el tiempo, salimos y el juego usa el teclado
+    if tiempo_restante <= 0:
+        break
+
+    # Renderizar UI de espera
+    txt_buscando = fuente_espera.render(f"Buscando Joystick... {tiempo_restante}s", True, NARANJA)
+    txt_skip = fuente_espera.render("Presiona [ENTER] para omitir y usar TECLADO", True, (150, 150, 150))
+    pantalla.blit(txt_buscando, txt_buscando.get_rect(center=(ANCHO // 2, ALTO // 2 - 20)))
+    pantalla.blit(txt_skip, txt_skip.get_rect(center=(ANCHO // 2, ALTO // 2 + 30)))
+    
+    # Permitir omitir la espera manualmente con Enter
+    teclas = pygame.key.get_pressed()
+    if teclas[pygame.K_RETURN]:
+        break
+
+    pygame.display.flip()
+    reloj.tick(30)
+
+
 # --- GENERACIÓN DE AMBIENTE (ESTRELLAS Y METEOROS) ---
 crateres = [(random.randint(0, ANCHO), random.randint(ALTO - 40, ALTO), random.randint(5, 15)) for _ in range(15)]
-
-# 100 estrellas estáticas con brillo aleatorio
 estrellas = [(random.randint(0, ANCHO), random.randint(0, ALTO), random.randint(1, 2), random.randint(100, 255)) for _ in range(100)]
 
 def crear_meteoro():
-    """Genera un meteoro con trayectoria diagonal hacia abajo a la izquierda"""
     return {
-        'x': random.randint(ANCHO, ANCHO + 800), # Nacen fuera de la pantalla a la derecha
-        'y': random.randint(-400, 0),          # Nacen arriba
-        'vx': random.uniform(-8, -4),          # Velocidad horizontal rápida
-        'vy': random.uniform(4, 8),            # Velocidad vertical rápida
-        'largo': random.randint(15, 40)        # Longitud de la estela
+        'x': random.randint(ANCHO, ANCHO + 800), 
+        'y': random.randint(-400, 0),          
+        'vx': random.uniform(-8, -4),          
+        'vy': random.uniform(4, 8),            
+        'largo': random.randint(15, 40)        
     }
 
 meteoros = [crear_meteoro() for _ in range(3)]
@@ -82,20 +119,14 @@ estado = iniciar_nivel(1)
 # --- FUNCIONES DE DIBUJO ---
 def dibujar_fondo(surface):
     surface.fill(FONDO)
-    
-    # Dibujar estrellas
     for e in estrellas:
         pygame.draw.circle(surface, (e[3], e[3], e[3]), (e[0], e[1]), e[2])
         
-    # Actualizar y dibujar meteoros (Efecto de ambiente)
     for m in meteoros:
         m['x'] += m['vx']
         m['y'] += m['vy']
-        # Dibujar estela del meteoro (línea) y la cabeza (círculo)
         pygame.draw.line(surface, (150, 150, 200), (m['x'], m['y']), (m['x'] - m['vx'] * 1.5, m['y'] - m['vy'] * 1.5), 2)
         pygame.draw.circle(surface, (200, 200, 255), (int(m['x']), int(m['y'])), 2)
-        
-        # Si el meteoro sale de la pantalla, lo reciclamos
         if m['x'] < -50 or m['y'] > ALTO + 50:
             m.update(crear_meteoro())
 
@@ -119,19 +150,41 @@ def dibujar_luna(surface, plat_ancho):
 # --- BUCLE PRINCIPAL ---
 corriendo = True
 while corriendo:
+    # --- PROCESAMIENTO DE EVENTOS ---
     for evento in pygame.event.get():
-        if evento.type == pygame.QUIT: corriendo = False
+        if evento.type == pygame.QUIT: 
+            corriendo = False
+            
+        # Sistema de reinicio optimizado (Evita que salte varios niveles de golpe)
+        if evento.type == pygame.KEYDOWN:
+            if evento.key == pygame.K_RETURN or evento.key == pygame.K_r:
+                if estado['exito']: estado = iniciar_nivel(estado['nivel'] + 1)
+                else: estado = iniciar_nivel(estado['nivel'])
+                
+        if evento.type == pygame.JOYBUTTONDOWN and usar_joystick:
+            if evento.button == 1:
+                if estado['exito']: estado = iniciar_nivel(estado['nivel'] + 1)
+                else: estado = iniciar_nivel(estado['nivel'])
 
-    eje_x = mi_joystick.get_axis(0)
-    gatillo = mi_joystick.get_button(0)
-    
-    if mi_joystick.get_button(1): 
-        if estado['exito']:
-            estado = iniciar_nivel(estado['nivel'] + 1)
-        else:
-            estado = iniciar_nivel(estado['nivel'])
+    # --- LECTURA HÍBRIDA DE CONTROLES (Joystick + Teclado) ---
+    eje_x = 0.0
+    gatillo = False
+    teclas = pygame.key.get_pressed()
 
-    # Lógica y Física
+    # 1. Leer hardware si está activo
+    if usar_joystick:
+        eje_x = mi_joystick.get_axis(0)
+        gatillo = mi_joystick.get_button(0)
+
+    # 2. Leer teclado (Sobrescribe o complementa al joystick)
+    if teclas[pygame.K_LEFT] or teclas[pygame.K_a]:
+        eje_x = -1.0
+    if teclas[pygame.K_RIGHT] or teclas[pygame.K_d]:
+        eje_x = 1.0
+    if teclas[pygame.K_UP] or teclas[pygame.K_SPACE] or teclas[pygame.K_w]:
+        gatillo = True
+
+    # --- LÓGICA Y FÍSICA ---
     if not estado['terminado']:
         estado['vel'][1] += estado['gravedad']
         estado['vel'][0] += estado['viento']
@@ -170,7 +223,7 @@ while corriendo:
         estado['log_guardado'] = True
 
     # --- RENDERIZADO VISUAL ---
-    dibujar_fondo(pantalla)  # Dibuja estrellas y meteoros
+    dibujar_fondo(pantalla)
     dibujar_luna(pantalla, estado['plat_ancho'])
     
     motor_activo = gatillo and estado['combustible'] > 0 and not estado['terminado']
@@ -189,6 +242,10 @@ while corriendo:
     txt_vel = fuente.render(f"VELOCIDAD: {estado['vel'][1]:.2f}", True, color_vel)
     pantalla.blit(txt_vel, (20, 20))
 
+    # Indicador de Método de Entrada
+    txt_control = fuente.render("MODO: JOYSTICK" if usar_joystick else "MODO: TECLADO", True, (150, 150, 150))
+    pantalla.blit(txt_control, (20, ALTO - 30))
+
     txt_nivel = fuente.render(f"NIVEL: {estado['nivel']}", True, AZUL)
     pantalla.blit(txt_nivel, (ANCHO - 120, 20))
     
@@ -203,7 +260,7 @@ while corriendo:
         rect_msg = txt_msg.get_rect(center=(ANCHO // 2, ALTO // 2 - 30))
         pantalla.blit(txt_msg, rect_msg)
         
-        instruccion = "Botón 1 -> SIGUIENTE NIVEL" if estado['exito'] else "Botón 1 -> REINTENTAR"
+        instruccion = "Presiona [ENTER] o Botón 1 -> SIGUIENTE NIVEL" if estado['exito'] else "Presiona [ENTER] o Botón 1 -> REINTENTAR"
         txt_inst = fuente.render(instruccion, True, (200, 200, 200))
         rect_inst = txt_inst.get_rect(center=(ANCHO // 2, ALTO // 2 + 30))
         pantalla.blit(txt_inst, rect_inst)
