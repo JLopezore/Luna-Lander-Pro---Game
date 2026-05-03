@@ -1,0 +1,3 @@
+[2026-04-22 21:07:51] Distancia: 1575m | Esquivados: 59
+[2026-04-22 21:08:01] Distancia: 249m | Esquivados: 13
+[2026-04-22 21:08:19] Distancia: 904m | Esquivados: 44
