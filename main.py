@@ -138,6 +138,20 @@ VERDE = (0, 255, 0)
 AZUL = (100, 200, 255)
 NARANJA = (255, 165, 0)
 
+def filtrar_ejes_joystick(eje_x_crudo, eje_y_crudo):
+    """Filtro asimetrico para mejorar respuesta en joystick Acteck."""
+    eje_x, eje_y = 0.0, 0.0
+
+    if eje_x_crudo < -0.15:
+        eje_x = (eje_x_crudo + 0.15) / 0.85
+    elif eje_x_crudo > 0.15:
+        eje_x = min(1.0, (eje_x_crudo - 0.15) / 0.45)
+
+    if abs(eje_y_crudo) > 0.15:
+        eje_y = eje_y_crudo
+
+    return eje_x, eje_y
+
 # --- PANTALLA DE DETECCIÓN ---
 usar_joystick = False
 tiempo_inicio = pygame.time.get_ticks()
@@ -284,8 +298,13 @@ while corriendo:
     teclas = pygame.key.get_pressed()
 
     if usar_joystick:
-        eje_x = mi_joystick.get_axis(0)
+        eje_x_crudo = mi_joystick.get_axis(0)
+        eje_y_crudo = mi_joystick.get_axis(1)
+        eje_x, eje_y = filtrar_ejes_joystick(eje_x_crudo, eje_y_crudo)
         gatillo = mi_joystick.get_button(0)
+        # Permite usar el stick hacia arriba como propulsor adicional.
+        if eje_y < -0.35:
+            gatillo = True
 
     if teclas[pygame.K_LEFT] or teclas[pygame.K_a]: eje_x = -1.0
     if teclas[pygame.K_RIGHT] or teclas[pygame.K_d]: eje_x = 1.0
