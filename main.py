@@ -79,6 +79,8 @@ crear_archivos_de_sonido()
 
 ARCHIVO_RECORD = "record_ihc.txt"
 
+
+
 def cargar_record():
     """Lee el récord desde el archivo. Si no existe, devuelve 0."""
     if os.path.exists(ARCHIVO_RECORD):
@@ -124,6 +126,16 @@ pantalla = pygame.display.set_mode((ANCHO, ALTO))
 pantalla_virtual = pygame.Surface((ANCHO, ALTO)) # Nueva superficie para el Screen Shake
 pygame.display.set_caption("IHC Lab: Lunar Lander + Shake & Audio")
 reloj = pygame.time.Clock()
+
+# --- CARGAR RECURSOS EXTERNOS ---
+try:
+    # .convert_alpha() respeta las transparencias del PNG
+    logo_unsis = pygame.image.load("unsis.png").convert_alpha()
+    # Escalamos el logo para que quepa bien en el domo (ejemplo: 40x40 píxeles)
+    logo_unsis = pygame.transform.scale(logo_unsis, (60, 60))
+except FileNotFoundError:
+    print("ADVERTENCIA: No se encontró 'unsis.png'. Se usará texto como respaldo.")
+    logo_unsis = None
 
 # --- COLORES ESTILIZADOS ---
 FONDO = (5, 5, 20)
@@ -266,6 +278,30 @@ def dibujar_luna(surface, plat_ancho):
     plat_x = ANCHO // 2 - plat_ancho // 2
     pygame.draw.rect(surface, PLATAFORMA_COLOR, (plat_x, ALTO - 55, plat_ancho, 10), border_radius=3)
 
+def dibujar_base_espacial(superficie, x, y, logo):
+    """Dibuja un domo lunar científico e inserta el logo de la universidad."""
+    color_cristal = (100, 150, 180)  # Azul claro/grisáceo para el domo
+    color_metal = (80, 80, 90)       # Gris oscuro para los cimientos
+    color_luz = (255, 50, 50)        # Luz roja de la antena
+
+    # 1. Domo Principal (Rectángulo con las esquinas superiores muy redondeadas)
+    pygame.draw.rect(superficie, color_cristal, (x, y, 80, 50), 
+                     border_top_left_radius=40, border_top_right_radius=40)
+    
+    pygame.draw.rect(superficie, color_metal, (x - 10, y + 45, 100, 15))
+
+    pygame.draw.line(superficie, (200, 200, 200), (x + 65, y + 10), (x + 65, y - 20), 2)
+    pygame.draw.circle(superficie, color_luz, (x + 65, y - 20), 3)
+
+    if logo is not None:
+        # Centramos el logo PNG dentro del domo de cristal
+        superficie.blit(logo, (x + 10, y - 5))
+    else:
+        # Respaldo: Si falló la carga del PNG, dibujamos el texto
+        fuente = pygame.font.SysFont("Courier New", 14, bold=True)
+        texto = fuente.render("UNSIS", True, (255, 255, 255))
+        superficie.blit(texto, (x + 18, y + 15))
+
 # Cargar el récord antes de empezar a jugar
 record_maximo = cargar_record()
 puntaje_actual = 0  # Esta variable ya la debes tener en tu juego
@@ -376,6 +412,7 @@ while corriendo:
     dibujar_fondo(pantalla_virtual)
     dibujar_luna(pantalla_virtual, estado['plat_ancho'])
     dibujar_nave(pantalla_virtual, estado['pos'][0], estado['pos'][1], motor_activo)
+    dibujar_base_espacial(pantalla_virtual, 20, ALTO - 80, logo_unsis)
     
     fuente = pygame.font.SysFont("Courier New", 18, bold=True)
     
