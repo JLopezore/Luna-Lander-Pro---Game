@@ -308,14 +308,15 @@ puntaje_actual = 0  # Esta variable ya la debes tener en tu juego
 
 # --- BUCLE PRINCIPAL ---
 corriendo = True
-# Cargar la música de fondo
-pygame.mixer.music.load("ambiente_v4.wav")
-
-# Bajarle un poco el volumen para que sea sutil
-pygame.mixer.music.set_volume(0.3)
-
-# El -1 le indica a Pygame que lo reproduzca en un bucle infinito
-pygame.mixer.music.play(-1)
+# --- IHC: REPRODUCCIÓN DE MÚSICA DE AMBIENTE ---
+if audio_on:
+    try:
+        pygame.mixer.music.load("ambiente_v4.wav")
+        pygame.mixer.music.set_volume(0.4) # Volumen un poco más bajo que los motores
+        pygame.mixer.music.play(-1) # El -1 es para que se reproduzca en bucle infinito
+    except Exception as e:
+        print(f"Advertencia: No se pudo reproducir la música de ambiente. Error: {e}")
+        
 while corriendo:
     for evento in pygame.event.get():
         if evento.type == pygame.QUIT: 
