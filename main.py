@@ -121,8 +121,9 @@ except Exception as e:
     canal_motor = None
     canal_sfx = None # <--- Inicializar en nulo para evitar errores
 
+# --- CONFIGURACIÓN DE PANTALLA ---
 ANCHO, ALTO = 800, 600
-pantalla = pygame.display.set_mode((ANCHO, ALTO))
+pantalla = pygame.display.set_mode((ANCHO, ALTO), pygame.FULLSCREEN | pygame.SCALED)
 pantalla_virtual = pygame.Surface((ANCHO, ALTO)) # Nueva superficie para el Screen Shake
 pygame.display.set_caption("IHC Lab: Lunar Lander + Shake & Audio")
 reloj = pygame.time.Clock()
